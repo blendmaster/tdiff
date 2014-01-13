@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset=utf-8>
+<title>Esprima Diff</title>
+
+<link rel=stylesheet href=colorbrewer.css>
+<style>
+  #editor, #raw, #output, #tree {
+    display: flex;
+    width: 100%;
+  }
+
+  #editor > div, #raw > div, #output > div, #tree > div {
+    flex: 1 1 auto;
+    width: 50%;
+    margin: 1em
+  }
+
+  #input1, #input2 {
+    height: 10em;
+    width: 100%;
+    max-width: 100%
+  }
+
+  .error {
+    background: #faa
+  }
+
+  .d0 { background: #faa }
+  .d1 { background: #fcc }
+  .d2 { background: #ffa }
+  .d3 { background: #afa }
+  .d4 { background: #aaf }
+
+  .added {
+    background: #afa;
+  }
+
+  .deleted {
+    background: #faa;
+  }
+
+  .mapped {
+    background: #aaf;
+  }
+
+  .syntax.mapped {
+    background: white;
+  }
+
+  .node-circle {
+    stroke: #eee;
+    fill: white;
+  }
+
+  .node-text {
+    dominant-baseline: middle;
+    text-anchor: middle;
+  
+  }
+
+  .link {
+    fill: none;
+    stroke: #ccc;
+  }
+
+  .node.added > .node-circle {
+    fill: #afa;
+  }
+
+  .node.deleted > .node-circle {
+    fill: #faa;
+  }
+
+  .node.mapped > .node-circle, .node:hover > .node-circle {
+    fill: #aaf;
+  }
+
+
+</style>
+
+<div id=editor>
+  <div>
+    <div><textarea id=input1></textarea></div>
+    <div><pre id=error1></pre></div>
+  </div>
+  <div>
+    <div><textarea id=input2></textarea></div>
+    <div><pre id=error2></pre></div>
+  </div>
+</div>
+
+<div><button id=calc>Calculate Difference</button></div>
+
+<div id=output class=Pastel1>
+  <div><pre id=output1></pre></div>
+  <div><pre id=output2></pre></div>
+</div>
+
+<div id=tree>
+  <div><svg id=tree1 width=400 height=600>
+    <g transform="translate(20, 20)">
+      <g class=links></g>
+      <g class=nodes></g>
+    </g>
+  </svg></div>
+  <div><svg id=tree2 width=400 height=600>
+    <g transform="translate(20, 20)">
+      <g class=links></g>
+      <g class=nodes></g>
+    </g>
+  </svg></div>
+</div>
+
+<div id=raw>
+  <div><pre id=raw1></pre></div>
+  <div><pre id=raw2></pre></div>
+</div>
+
+<div id=forest>
+  <svg id=forest1 width=400 height=600></svg>
+  <svg id=forest2 width=400 height=600></svg>
+</div>
+
+<script src=d3.v3.min.js></script>
+<script src=esprima.js></script>
+<script src=escodegen.browser.js></script>
+<script src=espr.js></script>
