@@ -12,7 +12,7 @@
   .node-text {
     dominant-baseline: middle;
     text-anchor: middle;
-  
+
   }
 
   .link {
@@ -20,35 +20,63 @@
     stroke: #ccc;
   }
 
-  #sidebyside {
+  #sidebyside, #inputs {
     display: flex;
   }
 
-  #sidebyside > div {
+  #sidebyside > div, #inputs > div {
     width: 100%
   }
 
-  #input {
+  #input1, #input2 {
     width: 30em;
     height: 10em;
   }
+
+  .key-root > .node-circle {
+    stroke-width: 3px;
+    stroke: #aaa;
+  }
+
+  .node-postorder {
+    font-size: 70%;
+  }
+
+  .delete > .node-circle {
+    fill: #faa;
+  }
+
+  .insert > .node-circle {
+    fill: #afa;
+  }
+
 </style>
 
-<div><textarea id=input></textarea></div>
-<div id=sidebyside>
+<div id=inputs>
   <div>
-    <div id=error></div>
-    <div><pre id=output></pre></div>
+    <div><textarea id=input1></textarea></div>
+    <div id=error1></div>
   </div>
+  <div>
+    <div><textarea id=input2></textarea></div>
+    <div id=error2></div>
+  </div>
+</div>
 
-  <div>
-    <svg id=forest width=540 height=540>
-      <g transform="translate(20, 20)">
-        <g class=links></g>
-        <g class=nodes></g>
-      </g>
-    </svg>
-  </div>
+<div id=diff>
+</div>
+
+<div>
+  <svg id=svg width=1020 height=560>
+    <g id=tree1 transform="translate(30, 30)">
+      <g class=links></g>
+      <g class=nodes></g>
+    </g>
+    <g id=tree2 transform="translate(480, 30)">
+      <g class=links></g>
+      <g class=nodes></g>
+    </g>
+  </svg>
 </div>
 
 <script src=d3.v3.min.js></script>
