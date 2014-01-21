@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset=utf-8>
+<title>Subforest Generator</title>
+
+<style>
+  .node-circle {
+    stroke: #eee;
+    fill: white;
+  }
+
+  .node-text {
+    dominant-baseline: middle;
+    text-anchor: middle;
+  
+  }
+
+  .link {
+    fill: none;
+    stroke: #ccc;
+  }
+
+  #sidebyside {
+    display: flex;
+  }
+
+  #sidebyside > div {
+    width: 100%
+  }
+
+  #input {
+    width: 30em;
+    height: 10em;
+  }
+</style>
+
+<div><textarea id=input></textarea></div>
+<div id=sidebyside>
+  <div>
+    <div id=error></div>
+    <div><pre id=output></pre></div>
+  </div>
+
+  <div>
+    <svg id=forest width=540 height=540>
+      <g transform="translate(20, 20)">
+        <g class=links></g>
+        <g class=nodes></g>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<script src=d3.v3.min.js></script>
+<script src=forest.js></script>
