@@ -5,47 +5,136 @@
 
 <style>
   .node-circle {
-    stroke: #eee;
+    stroke: #aaa;
     fill: white;
   }
 
   .node-text {
     dominant-baseline: middle;
     text-anchor: middle;
-  
+
+  }
+
+  .highlight {
+    fill: #3f3;
+    stroke: black;
+    stroke-width: 2px;
   }
 
   .link {
     fill: none;
-    stroke: #ccc;
+    stroke: #aaa;
+    stroke-width: 2px;
   }
 
-  #sidebyside {
+  #sidebyside, #inputs {
     display: flex;
+    justify-content: space-around;
   }
 
-  #sidebyside > div {
+  #sidebyside > div, #inputs > div {
     width: 100%
   }
 
-  #input {
+  #input1, #input2 {
     width: 30em;
     height: 10em;
   }
+
+  .key-root > .node-circle {
+    stroke-width: 3px;
+    stroke: #333;
+  }
+
+  .node-postorder {
+    font-size: 70%;
+  }
+
+  .delete > .node-circle {
+    fill: #faa;
+  }
+
+  .insert > .node-circle {
+    fill: #afa;
+  }
+
+  .trace {
+    background-color: #ddd;
+  }
+
+  .mapping {
+    stroke: #eee;
+    fill: none;
+    stroke-width: 3px;
+  }
+
+  #dtable {
+    border-spacing: 0;
+    border-collapse:collapse; 
+  }
+  #dtable td, #dtable th {
+    padding: 0.25em;
+    min-width: 1em;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid #eee;
+  }
+
+  #tablecontainer {
+    flex: 1 2 auto;
+  }
+
+  #svgcontainer {
+    flex: 2 1 auto;
+  }
+
 </style>
 
-<div><textarea id=input></textarea></div>
-<div id=sidebyside>
+<div id=inputs>
   <div>
-    <div id=error></div>
-    <div><pre id=output></pre></div>
+    <div><textarea id=input1></textarea></div>
+    <div id=error1></div>
   </div>
-
   <div>
-    <svg id=forest width=540 height=540>
-      <g transform="translate(20, 20)">
-        <g class=links></g>
-        <g class=nodes></g>
+    <div><textarea id=input2></textarea></div>
+    <div id=error2></div>
+  </div>
+</div>
+
+<div id=diff>
+  <div id=costs>
+    <label>
+      Deletion:
+      <input type=range min=0 max=10 step=1 value=1 id=deletion>
+    </label>
+    <label>
+      Insertion:
+      <input type=range min=0 max=10 step=1 value=1 id=insertion>
+    </label>
+    <label>
+      Renaming:
+      <input type=range min=0 max=10 step=1 value=1 id=renaming>
+    </label>
+  </div>
+</div>
+
+<div id=sidebyside>
+  <div id=tablecontainer>
+    <table id=dtable>
+      <thead><tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id=svgcontainer>
+    <svg id=svg width=1020 height=560>
+      <g id=mappings> </g>
+      <g id=tree1 transform="translate(30, 30)">
+      <g class=links></g>
+      <g class=nodes></g>
+      </g>
+      <g id=tree2 transform="translate(480, 30)">
+      <g class=links></g>
+      <g class=nodes></g>
       </g>
     </svg>
   </div>
