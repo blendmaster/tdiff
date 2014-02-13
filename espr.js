@@ -552,7 +552,7 @@ output2 = $('output2');
 tree1 = $('tree1');
 tree2 = $('tree2');
 calcDiff = function(){
-  var ast1, ast2, e, f1, f2, d, i$, ref$, len$, node, that;
+  var ast1, ast2, e, f1, f2, d, i$, ref$, len$, node;
   try {
     ast1 = esprima.parse(input1.value);
     ast2 = esprima.parse(input2.value);
@@ -570,22 +570,6 @@ calcDiff = function(){
   d = new EditDistance(f1, f2, COST);
   console.timeEnd('dist');
   console.log(d);
-  for (i$ = 0, len$ = (ref$ = $$('#tree1 .node')).length; i$ < len$; ++i$) {
-    node = ref$[i$];
-    if ((that = d.amap[node.getAttribute('data-postorder')]) != null) {
-      (fn$.call(this, that, node));
-    } else {
-      node.classList.add('deleted');
-    }
-  }
-  for (i$ = 0, len$ = (ref$ = $$('#tree2 .node')).length; i$ < len$; ++i$) {
-    node = ref$[i$];
-    if ((that = d.bmap[node.getAttribute('data-postorder')]) != null) {
-      (fn1$.call(this, that, node));
-    } else {
-      node.classList.add('added');
-    }
-  }
   for (i$ = 0, len$ = (ref$ = $$('#output1 .syntax')).length; i$ < len$; ++i$) {
     node = ref$[i$];
     if (d.amap[node.getAttribute('data-postorder')] != null) {
@@ -601,26 +585,6 @@ calcDiff = function(){
     } else {
       node.classList.add('added');
     }
-  }
-  function fn$(p2, node){
-    var x$;
-    x$ = node;
-    x$.addEventListener('mouseenter', function(){
-      $q("#tree2 .node[data-postorder=\"" + p2 + "\"]").classList.add('mapped');
-    });
-    x$.addEventListener('mouseleave', function(){
-      $q("#tree2 .node[data-postorder=\"" + p2 + "\"]").classList.remove('mapped');
-    });
-  }
-  function fn1$(p1, node){
-    var x$;
-    x$ = node;
-    x$.addEventListener('mouseenter', function(){
-      $q("#tree1 .node[data-postorder=\"" + p1 + "\"]").classList.add('mapped');
-    });
-    x$.addEventListener('mouseleave', function(){
-      $q("#tree1 .node[data-postorder=\"" + p1 + "\"]").classList.remove('mapped');
-    });
   }
 };
 parse = function(input, error, raw, output, tree){
@@ -638,7 +602,6 @@ parse = function(input, error, raw, output, tree){
     }
     postorder(ast);
     raw.textContent = JSON.stringify(ast, void 8, 2);
-    bindTree(ast, input.value, tree);
     while ((that = output.firstChild) != null) {
       output.removeChild(that);
     }

@@ -357,30 +357,30 @@ calc-diff = !->
 
   console.log d
 
-  for node in $$ '#tree1 .node'
-    if d.amap[node.get-attribute \data-postorder]?
-      let p2 = that
-        node
-          ..add-event-listener \mouseenter !->
-            $q "\#tree2 .node[data-postorder=\"#p2\"]"
-              .class-list.add \mapped
-          ..add-event-listener \mouseleave !->
-            $q "\#tree2 .node[data-postorder=\"#p2\"]"
-              .class-list.remove \mapped
-    else
-      node.class-list.add \deleted
-  for node in $$ '#tree2 .node'
-    if d.bmap[node.get-attribute \data-postorder]?
-      let p1 = that
-        node
-          ..add-event-listener \mouseenter !->
-            $q "\#tree1 .node[data-postorder=\"#p1\"]"
-              .class-list.add \mapped
-          ..add-event-listener \mouseleave !->
-            $q "\#tree1 .node[data-postorder=\"#p1\"]"
-              .class-list.remove \mapped
-    else
-      node.class-list.add \added
+  #for node in $$ '#tree1 .node'
+    #if d.amap[node.get-attribute \data-postorder]?
+      #let p2 = that
+        #node
+          #..add-event-listener \mouseenter !->
+            #$q "\#tree2 .node[data-postorder=\"#p2\"]"
+              #.class-list.add \mapped
+          #..add-event-listener \mouseleave !->
+            #$q "\#tree2 .node[data-postorder=\"#p2\"]"
+              #.class-list.remove \mapped
+    #else
+      #node.class-list.add \deleted
+  #for node in $$ '#tree2 .node'
+    #if d.bmap[node.get-attribute \data-postorder]?
+      #let p1 = that
+        #node
+          #..add-event-listener \mouseenter !->
+            #$q "\#tree1 .node[data-postorder=\"#p1\"]"
+              #.class-list.add \mapped
+          #..add-event-listener \mouseleave !->
+            #$q "\#tree1 .node[data-postorder=\"#p1\"]"
+              #.class-list.remove \mapped
+    #else
+      #node.class-list.add \added
 
   for node in $$ '#output1 .syntax'
     if d.amap[node.get-attribute \data-postorder]?
@@ -403,7 +403,7 @@ parse = (input, error, raw, output, tree) -> !->
 
   postorder ast
   raw.text-content = JSON.stringify ast, , 2
-  bind-tree ast, input.value, tree
+  #bind-tree ast, input.value, tree
 
   while output.first-child?
     output.remove-child that
