@@ -1,4 +1,3 @@
-
 children =
   AssignmentExpression:  -> [it.left, it.right]
   ArrayExpression:       -> it.elements
@@ -97,199 +96,160 @@ postorder = (root) !->
     else
       node.postorder = n++
 
-set-to-array = -> with []
-  it.for-each (el) !-> ..push el
+class Tree
+  (root) ->
+    @root = root
+      ..key-root = true
+    @nodes = []
+    @key-roots = [root]
 
-# preorder visit
-visit = (root, children, fn) !->
-  q = [root]
-  while (node = q.pop!)?
-    fn node
-    q.push ...children[node.postorder]
+    # reverse + unshift keeps the @key-roots array in ascending order
+    # by postorder traversal
+    for children-of(root).slice 1 .reverse!
+      ..key-root = true
+      @key-roots.unshift ..
 
-ids = 0
-class Forest
-  (
-    @nodes         # [Node]
-    @leftmost-root # Node
-    @children      # {Int: [Node]} from each node's postorder to its children
-    @roots         # {Int: Node} from each node's postorder to its root
-  ) ->
-    @id = ids++
-    @size = @nodes.length
-    if @size is 0 # stop calculating null forest
-      return
+    # postorder labeling, while also discovering key roots
+    # i.e. a node which has left siblings or the root
+    # and leftmost-decendents
+    n = 0
+    stack = [[root, children-of(root).slice!]]
+    while stack.length > 0
+      [node, children] = frame = stack.pop!
+      if children.length > 0
+        child = children.shift!
 
-    for node in nodes
-      unless @roots[node.postorder]?
-        throw new Error \fuck
+        # all non-left-siblings are key roots. if there
+        # is only one child, then the slice is empty
+        for children-of(child)slice 1 .reverse!
+          ..key-root = true
+          @key-roots.unshift ..
 
-    @is-tree = true
-    uniq-root-ids = {}
-    uniq-roots = []
-
-    for n, root of @roots
-      if not uniq-root-ids[root.postorder]?
-        uniq-roots.push root
-      uniq-root-ids[root.postorder] = true
-
-      if root is not @leftmost-root
-        @is-tree = false
-
-    sorted-roots = uniq-roots.sort (a, b) -> a.postorder - b.postorder
-
-    minus-leftmost-roots = {}
-    for child in @children[@leftmost-root.postorder]
-      visit child, @children, !->
-        minus-leftmost-roots[it.postorder] = child
-    for n, root of @roots
-      if root is not @leftmost-root
-        minus-leftmost-roots[n] = root
-
-    minus-leftmost-uniq-root-ids = {}
-    minus-leftmost-uniq-roots = []
-
-    for n, root of minus-leftmost-roots
-      if not minus-leftmost-uniq-root-ids[root.postorder]?
-        minus-leftmost-uniq-roots.push root
-      minus-leftmost-uniq-root-ids[root.postorder] = true
-
-    minus-leftmost-sorted-roots =
-      minus-leftmost-uniq-roots.sort (a, b) -> a.postorder - b.postorder
-
-    minus-leftmost = @nodes.filter ~> it is not @leftmost-root
-    @minus-leftmost = new Forest do
-      minus-leftmost
-      minus-leftmost-sorted-roots.0
-      @children
-      minus-leftmost-roots
-
-    leftmost-subtree-nodes = @nodes.filter ~>
-      @roots[it.postorder] is @leftmost-root
-
-    leftmost-subtree-roots = {}
-    for node in leftmost-subtree-nodes
-      leftmost-subtree-roots[node.postorder] = @leftmost-root
-
-    leftmost-subtree = @nodes.filter ~> @roots[it.postorder] is @leftmost-root
-    @leftmost-subtree =
-      if leftmost-subtree.length is @nodes.length
-        this
+        stack.push frame, [child, children-of(child)]
       else
-        new Forest do
-          leftmost-subtree
-          @leftmost-root
-          @children
-          leftmost-subtree-roots
+        @nodes.push node
+        node.postorder = n++
 
-    minus-leftmost-subtree-nodes =
-      @nodes.filter ~> @roots[it.postorder] is not @leftmost-root
+        # since we're postorder traversal, our children's leftmost-decendent
+        # is already calculated
+        node.leftmost =
+          if children-of(node).length > 0
+            children-of(node).0.leftmost
+          else
+            node
 
-    second-leftmost-root = sorted-roots.1
+    @size = n
 
-    minus-leftmost-subtree-roots = {}
-    for node in minus-leftmost-subtree-nodes
-      minus-leftmost-subtree-roots[node.postorder] = @roots[node.postorder]
+# TODO more efficient way for tracking the mapping
+min-mapping = (...choices) ->
+  min = choices.0.1
+  min-m =  choices.0.0
+  for [m, cost] in choices
+    if cost < min
+      min = cost
+      min-m = m
+  return [min-m, min]
 
-    @minus-leftmost-subtree = new Forest do
-      minus-leftmost-subtree-nodes
-      second-leftmost-root
-      @children
-      minus-leftmost-subtree-roots
+class EditDistance
+  (a, b, {deletion, insertion, renaming}: cost) ->
+    # distance array, (a.size, b.size)
+    @td = [[j * insertion for j to b.size] for i to a.size]
+    @backtrace = [[\i for j to b.size] for i to a.size]
 
-  @@from-ast = (ast) ->
-    nodes = []
-    leftmost-root = ast
-    children = {}
-    roots = {}
+    for i from 1 til @td.length
+      @td[i]0 = i * deletion
+      @backtrace[i]0 = \d
 
-    q = [ast]
-    while (node = q.pop!)?
-      n = node.postorder
+    @backtrace[0][0] = \r
 
-      c = children-of node
+    @fd = for kr1 in a.key-roots
+      for kr2 in b.key-roots
+        # temporary array (lmd[kr1]-1 .. kr1, lmd[kr2]-1 .. kr2)
+        # where lmd = leftmost-decendent
+        fd = [[] for i to a.size]
 
-      nodes.push node
-      children[n] = c
-      roots[n] = leftmost-root
+        # initialize "origin" and edges
+        # add 1 to all postorders to prevent use of index -1
+        fd[kr1.leftmost.postorder][kr2.leftmost.postorder] = 0
+        for i from (kr1.leftmost.postorder + 1) to (kr1.postorder + 1)
+          fd[i][kr2.leftmost.postorder] =
+            fd[i-1][kr2.leftmost.postorder] + deletion
+        for j from (kr2.leftmost.postorder + 1) to (kr2.postorder + 1)
+          fd[kr1.leftmost.postorder][j] =
+            fd[kr1.leftmost.postorder][j-1] + insertion
 
-      q.push ...c
+        # add 1 to all postorders to prevent use of index -1
+        for i from (kr1.leftmost.postorder + 1) to (kr1.postorder + 1)
+          for j from (kr2.leftmost.postorder + 1) to (kr2.postorder + 1)
+            if  kr1.leftmost.leftmost is kr1.leftmost \
+            and kr2.leftmost.leftmost is kr2.leftmost
+              # i.e. both are trees
+              [@backtrace[i][j], fd[i][j]] = min-mapping do
+                [\d fd[i-1][j  ] + deletion]
+                [\i fd[i  ][j-1] + insertion]
+                [\r fd[i-1][j-1] + renaming a.nodes[i-1], b.nodes[j-1] ]
 
-    return new Forest nodes, leftmost-root, children, roots
+              @td[i][j] = fd[i][j]
+            else
+              fd[i][j] = Math.min do
+                fd[i-1][j  ] + deletion
+                fd[i  ][j-1] + insertion
+                fd[a.nodes[i-1].leftmost.postorder]\
+                  [b.nodes[j-1].leftmost.postorder] + td[i][j]
 
-min-and-mapping = (...choices) ->
-  min-dist = Infinity
-  min = void
-  for [distance]: choice in choices
-    if distance < min-dist
-      min = choice
-  return min
+        # emit fd for algorithm tracing
+        fd
 
-add-distance-and-mapping = ([add-cost, add-mapping], [distance, mapping]) ->
-  [distance + add-cost, mapping <<< add-mapping]
-
-memo = {}
-distance-and-mapping = let
-  fn = (forest1, forest2, cost, mapping) ->
-    ret = if forest1.size is 0 and forest2.size is 0
-      [0, {}]
-    else if forest2.size is 0
-      [forest1.size * cost.deletion, {}]
-    else if forest1.size is 0
-      [forest2.size * cost.insertion, {}]
-    else if forest1.is-tree and forest2.is-tree
-      min-and-mapping do
-        add-distance-and-mapping do
-          [cost.deletion, {}]
-          distance-and-mapping forest1.minus-leftmost, forest2, cost
-        add-distance-and-mapping do
-          [cost.insertion, {}]
-          distance-and-mapping forest1, forest2.minus-leftmost, cost
-        add-distance-and-mapping do
-          [
-            cost.rename forest1.leftmost-root, forest2.leftmost-root
-            {(forest1.leftmost-root.postorder): forest2.leftmost-root.postorder}
-          ]
-          distance-and-mapping forest1.minus-leftmost, forest2.minus-leftmost, cost
-    else # one is not a single tree
-      min-and-mapping do
-        add-distance-and-mapping do
-          [cost.deletion, {}]
-          distance-and-mapping forest1.minus-leftmost, forest2, cost
-        add-distance-and-mapping do
-          [cost.insertion, {}]
-          distance-and-mapping forest1, forest2.minus-leftmost, cost
-        add-distance-and-mapping do
-          distance-and-mapping do
-            forest1.leftmost-subtree, forest2.leftmost-subtree, cost
-          distance-and-mapping do
-            forest1.minus-leftmost-subtree, forest2.minus-leftmost-subtree, cost
-    return ret
-
-  # memoize
-  (forest1, forest2, cost, mapping) ->
-    memo["#{forest1.id}#{forest2.id}"] ?= fn forest1, forest2, cost, mapping
+    @distance = @td[a.size][b.size]
+    @mapping = []
+    @amap = {}
+    @bmap = {}
+    @trace = []
+    i = a.size
+    j = b.size
+    while i >= 0 and j >= 0 # row/col 0 is dummy data
+      @trace.push [i, j]
+      switch @backtrace[i][j]
+      case \r
+        if i > 0 and j > 0
+          @mapping.push [a.nodes[i-1], b.nodes[j-1]]
+          @amap[i-1] = j-1
+          @bmap[j-1] = i-1
+        --i
+        --j
+      case \i
+        if j > 0
+          @mapping.push [null, b.nodes[j-1]]
+          @bmap[j-1] = null
+        --j
+      case \d
+        if i > 0
+          @mapping.push [a.nodes[i-1], null]
+          @amap[i-1] = null
+        --i
+      default
+        throw [i, j]
 
 export COST =
   insertion: 1
   deletion: 1
-  rename: (left, right) ->
+  renaming: (left, right) ->
     if left.type is right.type
       # TODO string distance
       if left.type is \Literal
         if left.raw is right.raw
           0
         else
-          Infinity
+          10
       else if left.type is \Identifier
         if left.name is right.name
           0
         else
-          Infinity
+          10
       else
         0
     else
-      Infinity
+      10
 
 L = document~create-element
 
@@ -378,26 +338,6 @@ output2 = $ \output2
 tree1 = $ \tree1
 tree2 = $ \tree2
 
-bind-forest = !->
-  try
-    ast1 = esprima.parse input1.value
-    ast2 = esprima.parse input2.value
-  catch
-    return
-
-  postorder ast1
-  postorder ast2
-
-  # clear memoize
-  memo := {}
-
-  console.time 'ast1'
-  f1 = Forest.from-ast ast1
-  console.time-end 'ast1'
-  console.time 'ast2'
-  f2 = Forest.from-ast ast2
-
-
 calc-diff = !->
   try
     ast1 = esprima.parse input1.value
@@ -405,35 +345,20 @@ calc-diff = !->
   catch
     return
 
-  postorder ast1
-  postorder ast2
-
-  # clear memoize
-  memo := {}
-
   console.time 'ast1'
-  f1 = Forest.from-ast ast1
+  f1 = new Tree ast1
   console.time-end 'ast1'
   console.time 'ast2'
-  f2 = Forest.from-ast ast2
+  f2 = new Tree ast2
   console.time-end 'ast2'
   console.time 'dist'
-  [distance, mapping] = distance-and-mapping do
-    f1
-    f2
-    COST
-    {}
+  d = new EditDistance f1, f2, COST
   console.time-end 'dist'
 
-  console.log mapping, distance
-
-  # calc bimapping
-  bimap = {}
-  for p1, p2 of mapping
-    bimap[p2] = p1
+  console.log d
 
   for node in $$ '#tree1 .node'
-    if mapping[node.get-attribute \data-postorder]?
+    if d.amap[node.get-attribute \data-postorder]?
       let p2 = that
         node
           ..add-event-listener \mouseenter !->
@@ -445,7 +370,7 @@ calc-diff = !->
     else
       node.class-list.add \deleted
   for node in $$ '#tree2 .node'
-    if bimap[node.get-attribute \data-postorder]?
+    if d.bmap[node.get-attribute \data-postorder]?
       let p1 = that
         node
           ..add-event-listener \mouseenter !->
@@ -458,17 +383,15 @@ calc-diff = !->
       node.class-list.add \added
 
   for node in $$ '#output1 .syntax'
-    if mapping[node.get-attribute \data-postorder]?
+    if d.amap[node.get-attribute \data-postorder]?
       node.class-list.add \mapped
     else
       node.class-list.add \deleted
   for node in $$ '#output2 .syntax'
-    if bimap[node.get-attribute \data-postorder]?
+    if d.bmap[node.get-attribute \data-postorder]?
       node.class-list.add \mapped
     else
       node.class-list.add \added
-
-
 
 parse = (input, error, raw, output, tree) -> !->
   try
