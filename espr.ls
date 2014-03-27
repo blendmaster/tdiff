@@ -214,13 +214,12 @@ class EditDistance
           fd[lp1 * bs + j] =
             fd[lp1 * bs + j-1] + insertion
 
-        # add 1 to all postorders to prevent use of index -1
-        for i from (lp1 + 1) to (p1 + 1)
-          ix = i * bs
-          imx = (i-1) * bs
-          for j from (lp2 + 1) to (p2 + 1)
-            if ll1 is l1 and ll2 is l2
-
+        if ll1 is l1 and ll2 is l2
+          # add 1 to all postorders to prevent use of index -1
+          for i from (lp1 + 1) to (p1 + 1)
+            ix = i * bs
+            imx = (i-1) * bs
+            for j from (lp2 + 1) to (p2 + 1)
               del = fd[imx + j  ] + deletion
               ins = fd[ix  + j-1] + insertion
               ren = fd[imx + j-1] + renames[(i-1) * bn + j-1]
@@ -237,7 +236,12 @@ class EditDistance
                   fd[ix + j] = ren
 
               td[ix + j] = fd[ix + j]
-            else
+        else
+          # add 1 to all postorders to prevent use of index -1
+          for i from (lp1 + 1) to (p1 + 1)
+            ix = i * bs
+            imx = (i-1) * bs
+            for j from (lp2 + 1) to (p2 + 1)
               asub = alp[i-1]
               bsub = blp[j-1]
 

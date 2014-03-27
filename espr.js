@@ -396,13 +396,13 @@ EditDistance = (function(){
           j = k$;
           fd[lp1 * bs + j] = fd[lp1 * bs + j - 1] + insertion;
         }
-        for (k$ = lp1 + 1, to$ = p1 + 1; k$ <= to$; ++k$) {
-          i = k$;
-          ix = i * bs;
-          imx = (i - 1) * bs;
-          for (l$ = lp2 + 1, to1$ = p2 + 1; l$ <= to1$; ++l$) {
-            j = l$;
-            if (ll1 === l1 && ll2 === l2) {
+        if (ll1 === l1 && ll2 === l2) {
+          for (k$ = lp1 + 1, to$ = p1 + 1; k$ <= to$; ++k$) {
+            i = k$;
+            ix = i * bs;
+            imx = (i - 1) * bs;
+            for (l$ = lp2 + 1, to1$ = p2 + 1; l$ <= to1$; ++l$) {
+              j = l$;
               del = fd[imx + j] + deletion;
               ins = fd[ix + j - 1] + insertion;
               ren = fd[imx + j - 1] + renames[(i - 1) * bn + j - 1];
@@ -420,7 +420,15 @@ EditDistance = (function(){
                 }
               }
               td[ix + j] = fd[ix + j];
-            } else {
+            }
+          }
+        } else {
+          for (k$ = lp1 + 1, to$ = p1 + 1; k$ <= to$; ++k$) {
+            i = k$;
+            ix = i * bs;
+            imx = (i - 1) * bs;
+            for (l$ = lp2 + 1, to1$ = p2 + 1; l$ <= to1$; ++l$) {
+              j = l$;
               asub = alp[i - 1];
               bsub = blp[j - 1];
               del = fd[imx + j] + deletion;
