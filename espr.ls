@@ -164,11 +164,9 @@ class EditDistance
     bs = bsize + 1
     # distance array, (a.size, b.size)
     @td = td = new Int32Array as * bs
-    @backtrace = bt = new Int32Array as * bs
     for i til as
       for j til bs
         td[i * bs + j] = j * insertion
-        bt[i * bs + j] = I
 
     an = a.nodes.length
     bn = b.nodes.length
@@ -177,11 +175,8 @@ class EditDistance
       for bb, j in b.nodes
         renames[i * bn + j] = renaming aa, bb
 
-    for i from 1 til as
+    for i til as
       td[i * bs] = i * deletion
-      bt[i * bs] = D
-
-    bt[0] = R
 
     # array (lmd[kr1]-1 .. kr1, lmd[kr2]-1 .. kr2)
     # where lmd = leftmost-decendent
@@ -233,17 +228,13 @@ class EditDistance
               if del < ins
                 if del < ren
                   fd[ix + j] = del
-                  bt[ix + j] = D
                 else # ren < del < ins
                   fd[ix + j] = ren
-                  bt[ix + j] = R
               else # ins < del
                 if ins < ren
                   fd[ix + j] = ins
-                  bt[ix + j] = I
                 else # ren < ins < del
                   fd[ix + j] = ren
-                  bt[ix + j] = R
 
               td[ix + j] = fd[ix + j]
             else
@@ -254,7 +245,16 @@ class EditDistance
               ins = fd[ix  + j-1] + insertion
               ren = fd[asub * bs + bsub] + td[ix + j]
 
-              fd[ix + j] = fast-min del, ins, ren
+              if del < ins
+                if del < ren
+                  fd[ix + j] = del
+                else # ren < del < ins
+                  fd[ix + j] = ren
+              else # ins < del
+                if ins < ren
+                  fd[ix + j] = ins
+                else # ren < ins < del
+                  fd[ix + j] = ren
 
     console.time-end \main
     @distance = td[asize * bs + bsize]
@@ -266,26 +266,40 @@ class EditDistance
     j = b.size
     while i >= 0 and j >= 0 # row/col 0 is dummy data
       @trace.push [i, j]
-      switch bt[i * bs + j]
-      case R
-        if i > 0 and j > 0
-          @mapping.push [a.nodes[i-1], b.nodes[j-1]]
-          @amap[i-1] = j-1
-          @bmap[j-1] = i-1
-        --i
-        --j
-      case I
-        if j > 0
-          @mapping.push [null, b.nodes[j-1]]
-          @bmap[j-1] = null
-        --j
-      case D
-        if i > 0
-          @mapping.push [a.nodes[i-1], null]
-          @amap[i-1] = null
-        --i
-      default
-        throw [bt[i * bs + j], i, j]
+      # walk backwards from final distance and check
+      # 3 possibilities, choosing the smallest.
+      # this should trace back to 0,0 and provide a
+      # valid mapping for the minimum cost without having
+      # to explicitly store the backtrace.
+      del = td[(i-1) * bs + j    ]
+      ins = td[i     * bs + j - 1]
+      ren = td[(i-1) * bs + j - 1]
+
+      if ren < del
+        if ren < ins # ren < del, ins
+          if i > 0 and j > 0
+            @mapping.push [a.nodes[i-1], b.nodes[j-1]]
+            @amap[i-1] = j-1
+            @bmap[j-1] = i-1
+          --i
+          --j
+        else # ins < ren < del
+          if j > 0
+            @mapping.push [null, b.nodes[j-1]]
+            @bmap[j-1] = null
+          --j
+      else
+        if del < ins # del < ren, ins
+          if i > 0
+            @mapping.push [null, b.nodes[j-1]]
+            @mapping.push [a.nodes[i-1], null]
+            @amap[i-1] = null
+          --i
+        else # ins < del < ren
+          if j > 0
+            @mapping.push [null, b.nodes[j-1]]
+            @bmap[j-1] = null
+          --j
 
 export COST =
   insertion: 1

@@ -331,20 +331,18 @@ EditDistance = (function(){
   EditDistance.displayName = 'EditDistance';
   var prototype = EditDistance.prototype, constructor = EditDistance;
   function EditDistance(a, b, cost){
-    var deletion, insertion, renaming, asize, bsize, as, bs, td, bt, i$, i, j$, j, an, bn, renames, ref$, len$, aa, ref1$, len1$, bb, fd, alp, blp, kr1, p1, lp1, ll1, l1, kr2, p2, lp2, ll2, l2, k$, to$, ix, imx, l$, to1$, del, ins, ren, asub, bsub;
+    var deletion, insertion, renaming, asize, bsize, as, bs, td, i$, i, j$, j, an, bn, renames, ref$, len$, aa, ref1$, len1$, bb, fd, alp, blp, kr1, p1, lp1, ll1, l1, kr2, p2, lp2, ll2, l2, k$, to$, ix, imx, l$, to1$, del, ins, ren, asub, bsub;
     deletion = cost.deletion, insertion = cost.insertion, renaming = cost.renaming;
     asize = a.size;
     bsize = b.size;
     as = asize + 1;
     bs = bsize + 1;
     this.td = td = new Int32Array(as * bs);
-    this.backtrace = bt = new Int32Array(as * bs);
     for (i$ = 0; i$ < as; ++i$) {
       i = i$;
       for (j$ = 0; j$ < bs; ++j$) {
         j = j$;
         td[i * bs + j] = j * insertion;
-        bt[i * bs + j] = I;
       }
     }
     an = a.nodes.length;
@@ -359,12 +357,10 @@ EditDistance = (function(){
         renames[i * bn + j] = renaming(aa, bb);
       }
     }
-    for (i$ = 1; i$ < as; ++i$) {
+    for (i$ = 0; i$ < as; ++i$) {
       i = i$;
       td[i * bs] = i * deletion;
-      bt[i * bs] = D;
     }
-    bt[0] = R;
     fd = new Int32Array(as * bs);
     alp = new Int32Array(a.nodes.length);
     for (i$ = 0, len$ = (ref$ = a.nodes).length; i$ < len$; ++i$) {
@@ -413,18 +409,14 @@ EditDistance = (function(){
               if (del < ins) {
                 if (del < ren) {
                   fd[ix + j] = del;
-                  bt[ix + j] = D;
                 } else {
                   fd[ix + j] = ren;
-                  bt[ix + j] = R;
                 }
               } else {
                 if (ins < ren) {
                   fd[ix + j] = ins;
-                  bt[ix + j] = I;
                 } else {
                   fd[ix + j] = ren;
-                  bt[ix + j] = R;
                 }
               }
               td[ix + j] = fd[ix + j];
@@ -434,7 +426,19 @@ EditDistance = (function(){
               del = fd[imx + j] + deletion;
               ins = fd[ix + j - 1] + insertion;
               ren = fd[asub * bs + bsub] + td[ix + j];
-              fd[ix + j] = fastMin(del, ins, ren);
+              if (del < ins) {
+                if (del < ren) {
+                  fd[ix + j] = del;
+                } else {
+                  fd[ix + j] = ren;
+                }
+              } else {
+                if (ins < ren) {
+                  fd[ix + j] = ins;
+                } else {
+                  fd[ix + j] = ren;
+                }
+              }
             }
           }
         }
@@ -450,32 +454,40 @@ EditDistance = (function(){
     j = b.size;
     while (i >= 0 && j >= 0) {
       this.trace.push([i, j]);
-      switch (bt[i * bs + j]) {
-      case R:
-        if (i > 0 && j > 0) {
-          this.mapping.push([a.nodes[i - 1], b.nodes[j - 1]]);
-          this.amap[i - 1] = j - 1;
-          this.bmap[j - 1] = i - 1;
+      del = td[(i - 1) * bs + j];
+      ins = td[i * bs + j - 1];
+      ren = td[(i - 1) * bs + j - 1];
+      if (ren < del) {
+        if (ren < ins) {
+          if (i > 0 && j > 0) {
+            this.mapping.push([a.nodes[i - 1], b.nodes[j - 1]]);
+            this.amap[i - 1] = j - 1;
+            this.bmap[j - 1] = i - 1;
+          }
+          --i;
+          --j;
+        } else {
+          if (j > 0) {
+            this.mapping.push([null, b.nodes[j - 1]]);
+            this.bmap[j - 1] = null;
+          }
+          --j;
         }
-        --i;
-        --j;
-        break;
-      case I:
-        if (j > 0) {
-          this.mapping.push([null, b.nodes[j - 1]]);
-          this.bmap[j - 1] = null;
+      } else {
+        if (del < ins) {
+          if (i > 0) {
+            this.mapping.push([null, b.nodes[j - 1]]);
+            this.mapping.push([a.nodes[i - 1], null]);
+            this.amap[i - 1] = null;
+          }
+          --i;
+        } else {
+          if (j > 0) {
+            this.mapping.push([null, b.nodes[j - 1]]);
+            this.bmap[j - 1] = null;
+          }
+          --j;
         }
-        --j;
-        break;
-      case D:
-        if (i > 0) {
-          this.mapping.push([a.nodes[i - 1], null]);
-          this.amap[i - 1] = null;
-        }
-        --i;
-        break;
-      default:
-        throw [bt[i * bs + j], i, j];
       }
     }
   }
