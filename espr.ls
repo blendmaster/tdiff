@@ -140,67 +140,124 @@ class Tree
 
     @size = n
 
-# TODO more efficient way for tracking the mapping
-min-mapping = (...choices) ->
-  min = choices.0.1
-  min-m =  choices.0.0
-  for [m, cost] in choices
-    if cost < min
-      min = cost
-      min-m = m
-  return [min-m, min]
+table = ->
+  it.map (.join \\t) .join \\n
+
+tbl = (it, a, b) ->
+  arr = for i til a
+    for j til b
+      it[i * b + j]
+
+  table arr
+
+D = -1
+I = 1
+R = 0
+
+fast-min = ZhangShasha window .min
 
 class EditDistance
   (a, b, {deletion, insertion, renaming}: cost) ->
+    asize = a.size
+    bsize = b.size
+    as = asize + 1
+    bs = bsize + 1
     # distance array, (a.size, b.size)
-    @td = [[j * insertion for j to b.size] for i to a.size]
-    @backtrace = [[\i for j to b.size] for i to a.size]
+    @td = td = new Int32Array as * bs
+    @backtrace = bt = new Int32Array as * bs
+    for i til as
+      for j til bs
+        td[i * bs + j] = j * insertion
+        bt[i * bs + j] = I
 
-    for i from 1 til @td.length
-      @td[i]0 = i * deletion
-      @backtrace[i]0 = \d
+    an = a.nodes.length
+    bn = b.nodes.length
+    renames = new Int32Array an * bn
+    for aa, i in a.nodes
+      for bb, j in b.nodes
+        renames[i * bn + j] = renaming aa, bb
 
-    @backtrace[0][0] = \r
+    for i from 1 til as
+      td[i * bs] = i * deletion
+      bt[i * bs] = D
 
-    @fd = for kr1 in a.key-roots
+    bt[0] = R
+
+    # array (lmd[kr1]-1 .. kr1, lmd[kr2]-1 .. kr2)
+    # where lmd = leftmost-decendent
+    # reset per iteration
+    fd = new Int32Array as * bs
+
+    # precalculate leftmost.postorder for an index
+    alp = new Int32Array a.nodes.length
+    for aa, i in a.nodes
+      alp[i] = aa.leftmost.postorder
+
+    blp = new Int32Array b.nodes.length
+    for bb, i in b.nodes
+      blp[i] = bb.leftmost.postorder
+
+    console.time \main
+    for kr1 in a.key-roots
+      p1 = kr1.postorder
+      lp1 = kr1.leftmost.postorder
+      ll1 = kr1.leftmost.leftmost
+      l1 = kr1.leftmost
       for kr2 in b.key-roots
-        # temporary array (lmd[kr1]-1 .. kr1, lmd[kr2]-1 .. kr2)
-        # where lmd = leftmost-decendent
-        fd = [[] for i to a.size]
+        p2 = kr2.postorder
+        lp2 = kr2.leftmost.postorder
+        ll2 = kr2.leftmost.leftmost
+        l2 = kr2.leftmost
 
         # initialize "origin" and edges
         # add 1 to all postorders to prevent use of index -1
-        fd[kr1.leftmost.postorder][kr2.leftmost.postorder] = 0
-        for i from (kr1.leftmost.postorder + 1) to (kr1.postorder + 1)
-          fd[i][kr2.leftmost.postorder] =
-            fd[i-1][kr2.leftmost.postorder] + deletion
-        for j from (kr2.leftmost.postorder + 1) to (kr2.postorder + 1)
-          fd[kr1.leftmost.postorder][j] =
-            fd[kr1.leftmost.postorder][j-1] + insertion
+        fd[lp1 * bs + lp2] = 0
+        for i from (lp1 + 1) to (p1 + 1)
+          fd[i * bs + lp2] =
+            fd[(i-1) * bs + lp2] + deletion
+        for j from (lp2 + 1) to (p2 + 1)
+          fd[lp1 * bs + j] =
+            fd[lp1 * bs + j-1] + insertion
 
         # add 1 to all postorders to prevent use of index -1
-        for i from (kr1.leftmost.postorder + 1) to (kr1.postorder + 1)
-          for j from (kr2.leftmost.postorder + 1) to (kr2.postorder + 1)
-            if  kr1.leftmost.leftmost is kr1.leftmost \
-            and kr2.leftmost.leftmost is kr2.leftmost
-              # i.e. both are trees
-              [@backtrace[i][j], fd[i][j]] = min-mapping do
-                [\d fd[i-1][j  ] + deletion]
-                [\i fd[i  ][j-1] + insertion]
-                [\r fd[i-1][j-1] + renaming a.nodes[i-1], b.nodes[j-1] ]
+        for i from (lp1 + 1) to (p1 + 1)
+          ix = i * bs
+          imx = (i-1) * bs
+          for j from (lp2 + 1) to (p2 + 1)
+            if ll1 is l1 and ll2 is l2
 
-              @td[i][j] = fd[i][j]
+              del = fd[imx + j  ] + deletion
+              ins = fd[ix  + j-1] + insertion
+              ren = fd[imx + j-1] + renames[(i-1) * bn + j-1]
+
+              if del < ins
+                if del < ren
+                  fd[ix + j] = del
+                  bt[ix + j] = D
+                else # ren < del < ins
+                  fd[ix + j] = ren
+                  bt[ix + j] = R
+              else # ins < del
+                if ins < ren
+                  fd[ix + j] = ins
+                  bt[ix + j] = I
+                else # ren < ins < del
+                  fd[ix + j] = ren
+                  bt[ix + j] = R
+
+              td[ix + j] = fd[ix + j]
             else
-              fd[i][j] = Math.min do
-                fd[i-1][j  ] + deletion
-                fd[i  ][j-1] + insertion
-                fd[a.nodes[i-1].leftmost.postorder]\
-                  [b.nodes[j-1].leftmost.postorder] + td[i][j]
+              asub = alp[i-1]
+              bsub = blp[j-1]
 
-        # emit fd for algorithm tracing
-        fd
+              del = fd[imx + j  ] + deletion
+              ins = fd[ix  + j-1] + insertion
+              ren = fd[asub * bs + bsub] + td[ix + j]
 
-    @distance = @td[a.size][b.size]
+              fd[ix + j] = fast-min del, ins, ren
+
+    console.time-end \main
+    @distance = td[asize * bs + bsize]
     @mapping = []
     @amap = {}
     @bmap = {}
@@ -209,26 +266,26 @@ class EditDistance
     j = b.size
     while i >= 0 and j >= 0 # row/col 0 is dummy data
       @trace.push [i, j]
-      switch @backtrace[i][j]
-      case \r
+      switch bt[i * bs + j]
+      case R
         if i > 0 and j > 0
           @mapping.push [a.nodes[i-1], b.nodes[j-1]]
           @amap[i-1] = j-1
           @bmap[j-1] = i-1
         --i
         --j
-      case \i
+      case I
         if j > 0
           @mapping.push [null, b.nodes[j-1]]
           @bmap[j-1] = null
         --j
-      case \d
+      case D
         if i > 0
           @mapping.push [a.nodes[i-1], null]
           @amap[i-1] = null
         --i
       default
-        throw [i, j]
+        throw [bt[i * bs + j], i, j]
 
 export COST =
   insertion: 1
