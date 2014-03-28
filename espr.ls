@@ -140,127 +140,127 @@ class Tree
 
     @size = n
 
-table = ->
-  it.map (.join \\t) .join \\n
+const
+  D = 0
+  R = 1
+  I = 2
 
-tbl = (it, a, b) ->
-  arr = for i til a
-    for j til b
-      it[i * b + j]
+# should be big enough
+# XXX would prefer to allocate heap as
+# new array buffer when diffing, but
+# firefox can't re-link an asm module with
+# a different heap.
+HEAP_SIZE = 33554432
+HEAP = new ArrayBuffer HEAP_SIZE
 
-  table arr
+next-size = ->
+  size = 4096
+  until size >= 4 * it
+    size *= 2
+  size
 
-D = -1
-I = 1
-R = 0
-
-fast-min = ZhangShasha window .min
+prgm = ZhangShasha window, {}, HEAP .diff
 
 class EditDistance
   (a, b, {deletion, insertion, renaming}: cost) ->
+
     asize = a.size
     bsize = b.size
     as = asize + 1
     bs = bsize + 1
-    # distance array, (a.size, b.size)
-    @td = td = new Int32Array as * bs
-    for i til as
-      for j til bs
-        td[i * bs + j] = j * insertion
 
-    an = a.nodes.length
-    bn = b.nodes.length
-    renames = new Int32Array an * bn
+    # check heap size
+    total = next-size do
+      # uint td[a.size + 1][b.size + 1]
+      (td-size = as * bs) +
+      # uint fd[a.size + 1][b.size + 1]
+      (fd-size = as * bs) +
+      # uint bt[a.size + 1][a.size + 1]
+      (bt-size = as * bs) +
+      # uint renames[a.size][b.size]
+      (renames-size = asize * bsize) +
+      # struct {
+      #   uint postorder;
+      #   uint leftmost_postorder;
+      #   uint leftmost_leftmost_postorder;
+      # } a[a.size], b[b.size]
+      (a-struct-size = 4 * a.size) +
+      (b-struct-size = 4 * b.size) +
+      #
+      # int kra[krasize], krb[krbsize];
+      (kra-arr-size = a.key-roots.length) +
+      (krb-arr-size = b.key-roots.length)
+
+    if total > HEAP_SIZE
+      alert 'not enough heap space :('
+
+    ofs = 0
+    alloc = (size) ->
+      ptr = ofs
+      ofs += size
+      return new Uint32Array HEAP, ptr * 4, size
+
+    # distance array, (a.size, b.size)
+    td = alloc td-size
+    @td = td
+
+    fd = alloc fd-size
+    bt = alloc fd-size
+
+    renames = alloc renames-size
     for aa, i in a.nodes
       for bb, j in b.nodes
-        renames[i * bn + j] = renaming aa, bb
+        renames[i * bsize + j] = renaming aa, bb
 
-    for i til as
-      td[i * bs] = i * deletion
-
-    # array (lmd[kr1]-1 .. kr1, lmd[kr2]-1 .. kr2)
-    # where lmd = leftmost-decendent
-    # reset per iteration
-    fd = new Int32Array as * bs
-
-    # precalculate leftmost.postorder for an index
-    alp = new Int32Array a.nodes.length
+    # fill node structs
+    astruct = alloc a-struct-size
     for aa, i in a.nodes
-      alp[i] = aa.leftmost.postorder
+      astruct[i*3    ] = aa.postorder
+      astruct[i*3 + 1] = aa.leftmost.postorder
+      astruct[i*3 + 2] = aa.leftmost.leftmost.postorder
 
-    blp = new Int32Array b.nodes.length
+    bstruct = alloc b-struct-size
     for bb, i in b.nodes
-      blp[i] = bb.leftmost.postorder
+      bstruct[i*3    ] = bb.postorder
+      bstruct[i*3 + 1] = bb.leftmost.postorder
+      bstruct[i*3 + 2] = bb.leftmost.leftmost.postorder
+
+    # key root arrays
+    kra = alloc kra-arr-size
+    for kr1, i in a.key-roots
+      kra[i] = kr1.postorder
+
+    krb = alloc krb-arr-size
+    for kr2, i in b.key-roots
+      krb[i] = kr2.postorder
 
     console.time \main
-    for kr1 in a.key-roots
-      p1 = kr1.postorder
-      lp1 = kr1.leftmost.postorder
-      ll1 = kr1.leftmost.leftmost
-      l1 = kr1.leftmost
-      for kr2 in b.key-roots
-        p2 = kr2.postorder
-        lp2 = kr2.leftmost.postorder
-        ll2 = kr2.leftmost.leftmost
-        l2 = kr2.leftmost
 
-        # initialize "origin" and edges
-        # add 1 to all postorders to prevent use of index -1
-        fd[lp1 * bs + lp2] = 0
-        for i from (lp1 + 1) to (p1 + 1)
-          fd[i * bs + lp2] =
-            fd[(i-1) * bs + lp2] + deletion
-        for j from (lp2 + 1) to (p2 + 1)
-          fd[lp1 * bs + j] =
-            fd[lp1 * bs + j-1] + insertion
+    prgm do
+     astruct.byte-offset
+     asize
+     kra.byte-offset
+     kra-arr-size
 
-        if ll1 is l1 and ll2 is l2
-          # add 1 to all postorders to prevent use of index -1
-          for i from (lp1 + 1) to (p1 + 1)
-            ix = i * bs
-            imx = (i-1) * bs
-            for j from (lp2 + 1) to (p2 + 1)
-              del = fd[imx + j  ] + deletion
-              ins = fd[ix  + j-1] + insertion
-              ren = fd[imx + j-1] + renames[(i-1) * bn + j-1]
+     bstruct.byte-offset
+     bsize
+     krb.byte-offset
+     krb-arr-size
 
-              if del < ins
-                if del < ren
-                  fd[ix + j] = del
-                else # ren < del < ins
-                  fd[ix + j] = ren
-              else # ins < del
-                if ins < ren
-                  fd[ix + j] = ins
-                else # ren < ins < del
-                  fd[ix + j] = ren
+     td.byte-offset
+     fd.byte-offset
+     bt.byte-offset
 
-              td[ix + j] = fd[ix + j]
-        else
-          # add 1 to all postorders to prevent use of index -1
-          for i from (lp1 + 1) to (p1 + 1)
-            ix = i * bs
-            imx = (i-1) * bs
-            for j from (lp2 + 1) to (p2 + 1)
-              asub = alp[i-1]
-              bsub = blp[j-1]
-
-              del = fd[imx + j  ] + deletion
-              ins = fd[ix  + j-1] + insertion
-              ren = fd[asub * bs + bsub] + td[ix + j]
-
-              if del < ins
-                if del < ren
-                  fd[ix + j] = del
-                else # ren < del < ins
-                  fd[ix + j] = ren
-              else # ins < del
-                if ins < ren
-                  fd[ix + j] = ins
-                else # ren < ins < del
-                  fd[ix + j] = ren
+     renames.byte-offset
+     insertion
+     deletion
 
     console.time-end \main
+
+    # console.log 'td after'
+    # console.log tbl td, as, bs
+    # console.log 'fd after'
+    # console.log tbl fd, as, bs
     @distance = td[asize * bs + bsize]
     @mapping = []
     @amap = {}
@@ -268,42 +268,30 @@ class EditDistance
     @trace = []
     i = a.size
     j = b.size
-    while i >= 0 and j >= 0 # row/col 0 is dummy data
+    k = a.size * b.size
+    while i >= 0 and j >= 0 and k > 0 # row/col 0 is dummy data
+      --k
       @trace.push [i, j]
-      # walk backwards from final distance and check
-      # 3 possibilities, choosing the smallest.
-      # this should trace back to 0,0 and provide a
-      # valid mapping for the minimum cost without having
-      # to explicitly store the backtrace.
-      del = td[(i-1) * bs + j    ]
-      ins = td[i     * bs + j - 1]
-      ren = td[(i-1) * bs + j - 1]
-
-      if ren < del
-        if ren < ins # ren < del, ins
-          if i > 0 and j > 0
-            @mapping.push [a.nodes[i-1], b.nodes[j-1]]
-            @amap[i-1] = j-1
-            @bmap[j-1] = i-1
-          --i
-          --j
-        else # ins < ren < del
-          if j > 0
-            @mapping.push [null, b.nodes[j-1]]
-            @bmap[j-1] = null
-          --j
-      else
-        if del < ins # del < ren, ins
-          if i > 0
-            @mapping.push [null, b.nodes[j-1]]
-            @mapping.push [a.nodes[i-1], null]
-            @amap[i-1] = null
-          --i
-        else # ins < del < ren
-          if j > 0
-            @mapping.push [null, b.nodes[j-1]]
-            @bmap[j-1] = null
-          --j
+      switch bt[i * bs + j]
+      case R
+        if i > 0 and j > 0
+          @mapping.push [a.nodes[i-1], b.nodes[j-1]]
+          @amap[i-1] = j-1
+          @bmap[j-1] = i-1
+        --i
+        --j
+      case I
+        if j > 0
+          @mapping.push [null, b.nodes[j-1]]
+          @bmap[j-1] = null
+        --j
+      case D
+        if i > 0
+          @mapping.push [a.nodes[i-1], null]
+          @amap[i-1] = null
+        --i
+      default
+        throw [i, j]
 
 export COST =
   insertion: 1
