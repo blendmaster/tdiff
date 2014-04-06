@@ -107,7 +107,7 @@ const
 # new array buffer when diffing, but
 # firefox can't re-link an asm module with
 # a different heap.
-HEAP_SIZE = 33554432
+HEAP_SIZE = 33554432 * 8
 HEAP = new ArrayBuffer HEAP_SIZE
 
 next-size = ->

@@ -180,7 +180,7 @@ Tree = (function(){
 D = 0;
 R = 1;
 I = 2;
-HEAP_SIZE = 33554432;
+HEAP_SIZE = 33554432 * 8;
 HEAP = new ArrayBuffer(HEAP_SIZE);
 nextSize = function(it){
   var size;
