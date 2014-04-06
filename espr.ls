@@ -342,6 +342,11 @@ output1 = $ \output1
 input2 = $ \input2
 error2 = $ \error2
 output2 = $ \output2
+
+# to work around mouseout not firing when hovering
+# children, keep track of actual hovered element so
+# we can unhover parent elements
+hovered = []
 calc-diff = !->
   try
     ast1 = esprima.parse input1.value
@@ -361,14 +366,59 @@ calc-diff = !->
 
   console.log d
 
+
   for node in $$ '#output1 .syntax'
-    if d.amap[node.get-attribute \data-postorder]?
-      node.class-list.add \mapped
+    postorder = node.get-attribute \data-postorder
+    if d.amap[postorder]?
+      let mapped = that, postorder
+        node.class-list.add \mapped
+        node.add-event-listener \mouseenter !->
+          for $$ ".hover"
+            ..class-list.remove \hover
+
+          @class-list.add \hover
+          hovered.push [mapped, postorder]
+          $q "\#output2 [data-postorder=\"#mapped\"]"
+            .class-list.add \hover
+        , false
+
+        node.add-event-listener \mouseleave !->
+          for $$ ".hover"
+            ..class-list.remove \hover
+          hovered.pop!
+          if hovered[*-1]?
+            $q "\#output2 [data-postorder=\"#{that.0}\"]"
+              .class-list.add \hover
+            $q "\#output1 [data-postorder=\"#{that.1}\"]"
+              .class-list.add \hover
+        , false
     else
       node.class-list.add \deleted
   for node in $$ '#output2 .syntax'
-    if d.bmap[node.get-attribute \data-postorder]?
-      node.class-list.add \mapped
+    postorder = node.get-attribute \data-postorder
+    if d.bmap[postorder]?
+      let mapped = that, postorder
+        node.class-list.add \mapped
+        node.add-event-listener \mouseenter !->
+          for $$ ".hover"
+            ..class-list.remove \hover
+
+          @class-list.add \hover
+          hovered.push [mapped, postorder]
+          $q "\#output1 [data-postorder=\"#mapped\"]"
+            .class-list.add \hover
+        , false
+
+        node.add-event-listener \mouseleave !->
+          for $$ ".hover"
+            ..class-list.remove \hover
+          hovered.pop!
+          if hovered[*-1]?
+            $q "\#output1 [data-postorder=\"#{that.0}\"]"
+              .class-list.add \hover
+            $q "\#output2 [data-postorder=\"#{that.1}\"]"
+              .class-list.add \hover
+        , false
     else
       node.class-list.add \added
 
