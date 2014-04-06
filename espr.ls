@@ -41,49 +41,6 @@ children =
   WithStatement:         -> [it.expression, it.body]
 
 children-of = -> children[it.type] it .filter (?)
-
-label =
-  AssignmentExpression:  -> '='
-  ArrayExpression:       -> '[]'
-  BlockStatement:        -> '{}'
-  BinaryExpression:      -> it.operator
-  BreakStatement:        -> 'break'
-  CallExpression:        -> '()'
-  CatchClause:           -> 'catch'
-  ConditionalExpression: -> '?:'
-  ContinueStatement:     -> 'continue'
-  DoWhileStatement:      -> 'do'
-  DebuggerStatement:     -> 'debugger'
-  EmptyStatement:        -> ';'
-  ExpressionStatement:   -> ';'
-  ForStatement:          -> 'for'
-  ForInStatement:        -> 'for'
-  FunctionDeclaration:   -> 'function'
-  FunctionExpression:    -> 'function'
-  Identifier:            -> it.name
-  IfStatement:           -> 'if'
-  Literal:               -> it.raw
-  LabeledStatement:      -> 'label'
-  LogicalExpression:     -> it.operator
-  MemberExpression:      -> '.'
-  NewExpression:         -> 'new'
-  ObjectExpression:      -> '{}'
-  Program:               -> '.js'
-  Property:              -> ':'
-  ReturnStatement:       -> 'return'
-  SequenceExpression:    -> ','
-  SwitchStatement:       -> 'switch'
-  SwitchCase:            -> if it.test? then 'case' else 'default'
-  ThisExpression:        -> 'this'
-  ThrowStatement:        -> 'throw'
-  TryStatement:          -> 'try'
-  UnaryExpression:       -> it.operator
-  UpdateExpression:      -> it.operator
-  VariableDeclaration:   -> 'var'
-  VariableDeclarator:    -> 'var'
-  WhileStatement:        -> 'while'
-  WithStatement:         -> 'with'
-
 postorder = (root) !->
   n = 0
   stack = [[root, children-of root]]
@@ -373,37 +330,6 @@ gen-html = (source, ast) ->
 
   return frag
 
-diag = d3.svg.diagonal!projection -> [it.y, it.x]
-
-bind-tree = (ast, code, svg) ->
-  t = d3.layout.tree!
-    .children children-of
-    .size [560 360]
-  nodes = t.nodes ast
-  d3.select svg
-    ..select \.nodes .select-all \.node .data nodes
-      ..exit!remove!
-      ..enter!append \g .attr class: \node
-        ..append \circle .attr class: \node-circle r: 20
-        ..append \text .attr class: \node-text
-      ..attr do
-        transform: -> "translate(#{it.y}, #{it.x})"
-
-        'data-postorder': (.postorder)
-        title: ->
-          [start, end] = it.range
-          """
-          #{it.type}
-
-          #{code.substring start, end}
-          """
-      ..select \.node-text .text -> label[it.type] it
-    ..select \.links .select-all \.link .data t.links nodes
-      ..exit!remove!
-      ..enter!append \path .attr \class \link
-      ..attr \d diag
-
-
 # DOM binding
 
 $ = document~get-element-by-id
@@ -412,15 +338,10 @@ $$ = document~query-selector-all
 
 input1 = $ \input1
 error1 = $ \error1
-raw1 = $ \raw1
 output1 = $ \output1
 input2 = $ \input2
 error2 = $ \error2
-raw2 = $ \raw2
 output2 = $ \output2
-tree1 = $ \tree1
-tree2 = $ \tree2
-
 calc-diff = !->
   try
     ast1 = esprima.parse input1.value
@@ -440,31 +361,6 @@ calc-diff = !->
 
   console.log d
 
-  #for node in $$ '#tree1 .node'
-    #if d.amap[node.get-attribute \data-postorder]?
-      #let p2 = that
-        #node
-          #..add-event-listener \mouseenter !->
-            #$q "\#tree2 .node[data-postorder=\"#p2\"]"
-              #.class-list.add \mapped
-          #..add-event-listener \mouseleave !->
-            #$q "\#tree2 .node[data-postorder=\"#p2\"]"
-              #.class-list.remove \mapped
-    #else
-      #node.class-list.add \deleted
-  #for node in $$ '#tree2 .node'
-    #if d.bmap[node.get-attribute \data-postorder]?
-      #let p1 = that
-        #node
-          #..add-event-listener \mouseenter !->
-            #$q "\#tree1 .node[data-postorder=\"#p1\"]"
-              #.class-list.add \mapped
-          #..add-event-listener \mouseleave !->
-            #$q "\#tree1 .node[data-postorder=\"#p1\"]"
-              #.class-list.remove \mapped
-    #else
-      #node.class-list.add \added
-
   for node in $$ '#output1 .syntax'
     if d.amap[node.get-attribute \data-postorder]?
       node.class-list.add \mapped
@@ -476,7 +372,7 @@ calc-diff = !->
     else
       node.class-list.add \added
 
-parse = (input, error, raw, output, tree) -> !->
+parse = (input, error, output) -> !->
   try
     ast = esprima.parse input.value, {+range}
   catch
@@ -485,8 +381,6 @@ parse = (input, error, raw, output, tree) -> !->
     return
 
   postorder ast
-  raw.text-content = JSON.stringify ast, , 2
-  #bind-tree ast, input.value, tree
 
   while output.first-child?
     output.remove-child that
@@ -502,8 +396,8 @@ parse = (input, error, raw, output, tree) -> !->
   input.class-list.remove \error
   error.text-content = ''
 
-parse1 = parse input1, error1, raw1, output1, tree1
-parse2 = parse input2, error2, raw2, output2, tree2
+parse1 = parse input1, error1, output1
+parse2 = parse input2, error2, output2
 
 $ \input1 .add-event-listener \input parse1
 $ \input2 .add-event-listener \input parse2
