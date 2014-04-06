@@ -316,6 +316,16 @@ export COST =
 
 L = document~create-element
 
+supertype-of = ->
+  if /Statement/.test it.type
+    \Statement
+  else if /Declaration/.test it.type
+    \Statement
+  else if /Expression/.test it.type
+    \Expression
+  else
+    ''
+
 gen-html = (source, ast) ->
   starts = {}
   ends = {}
@@ -329,6 +339,7 @@ gen-html = (source, ast) ->
   el = frag = document.create-document-fragment!
   text = ''
   depth = 0
+  type-stack = []
   for c, i in source
     if starts[i]?
       el.append-child document.create-text-node text
@@ -336,19 +347,28 @@ gen-html = (source, ast) ->
 
       for node in that
         elem = with L \span
-          ..class-name = "syntax #{node.type} "# q#{depth % 9}-9"
+          ..class-name = "syntax #{node.type} #{supertype-of node}"# q#{depth % 9}-9"
           ..dataset.postorder = node.postorder
+        type-stack.push node.type
+        cur-type = node.type
         depth++
         el.append-child elem
         el = elem
 
-    text += c
+    if cur-type is \BlockStatement
+      unless c is \{ or c is \}
+        text += c
+    else
+      unless c is \\n
+        text += c
 
     if ends[i]?
       el.append-child document.create-text-node text
       text = ''
       for node in that
         el.=parent-node
+        type-stack.pop!
+        cur-type = type-stack[*-1]
         depth--
 
   return frag
@@ -471,7 +491,9 @@ parse = (input, error, raw, output, tree) -> !->
   while output.first-child?
     output.remove-child that
 
-  normalized-code = escodegen.generate ast
+  normalized-code = escodegen.generate ast, format:
+    indent: style: ''
+    semicolons: false
   normalized-ast = esprima.parse normalized-code, {+range}
   postorder normalized-ast
 

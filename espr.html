@@ -50,8 +50,14 @@
     vertical-align: top;
   }
 
-  .BlockStatement {
+  .Statement, .Property, .ObjectExpression {
     display: block;
+    margin-left: 1em;
+  }
+
+  .BlockStatement, .FunctionExpression {
+    display: block;
+    margin-left: 1em;
   }
 
   .syntax.mapped {
@@ -103,8 +109,8 @@
 <div><button id=calc>Calculate Difference</button></div>
 
 <div id=output class=Pastel1>
-  <div><pre id=output1></pre></div>
-  <div><pre id=output2></pre></div>
+  <div><div id=output1></div></div>
+  <div><div id=output2></div></div>
 </div>
 
 <div id=tree>
