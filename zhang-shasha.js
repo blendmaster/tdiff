@@ -123,20 +123,20 @@ function ZhangShasha(stdlib, foreign, heap) {
                          (((imul(i - 1, bsize)|0) + j-1) << 2)) >> 2])|0;
 
               if ((del|0) < (ins|0)) {
-                if ((del|0) < (ren|0)) {
+                if ((ren|0) < (del|0)) {
+                  HEAP[(bt + ((ix + j) << 2)) >> 2] = 1;
+                  HEAP[(fd + ((ix + j) << 2)) >> 2] = ren;
+                } else {
                   HEAP[(bt + ((ix + j) << 2)) >> 2] = 0;
                   HEAP[(fd + ((ix + j) << 2)) >> 2] = del;
-                } else {
-                  HEAP[(bt + ((ix + j) << 2)) >> 2] = 1;
-                  HEAP[(fd + ((ix + j) << 2)) >> 2] = ren;
                 }
               } else {
-                if ((ins|0) < (ren|0)) {
-                  HEAP[(bt + ((ix + j) << 2)) >> 2] = 2;
-                  HEAP[(fd + ((ix + j) << 2)) >> 2] = ins;
-                } else {
+                if ((ren|0) < (ins|0)) {
                   HEAP[(bt + ((ix + j) << 2)) >> 2] = 1;
                   HEAP[(fd + ((ix + j) << 2)) >> 2] = ren;
+                } else {
+                  HEAP[(bt + ((ix + j) << 2)) >> 2] = 2;
+                  HEAP[(fd + ((ix + j) << 2)) >> 2] = ins;
                 }
               }
 
@@ -160,16 +160,16 @@ function ZhangShasha(stdlib, foreign, heap) {
                        ~~HEAP[(td + ((ix + j) << 2)) >> 2])|0;
 
               if ((del|0) < (ins|0)) {
-                if ((del|0) < (ren|0)) {
-                  HEAP[(fd + ((ix + j) << 2)) >> 2] = del;
-                } else {
+                if ((ren|0) < (del|0)) {
                   HEAP[(fd + ((ix + j) << 2)) >> 2] = ren;
+                } else {
+                  HEAP[(fd + ((ix + j) << 2)) >> 2] = del;
                 }
               } else {
-                if ((ins|0) < (ren|0)) {
-                  HEAP[(fd + ((ix + j) << 2)) >> 2] = ins;
-                } else {
+                if ((ren|0) < (ins|0)) {
                   HEAP[(fd + ((ix + j) << 2)) >> 2] = ren;
+                } else {
+                  HEAP[(fd + ((ix + j) << 2)) >> 2] = ins;
                 }
               }
             }
