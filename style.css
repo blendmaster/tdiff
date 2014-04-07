@@ -1,0 +1,56 @@
+body {
+  font-family: sans-serif;
+  font-size: 9pt;
+}
+#editor, #raw, #output {
+  display: flex;
+  width: 100%;
+}
+
+#editor > div, #raw > div, #output > div {
+  flex: 1 1 auto;
+  width: 50%;
+  margin: 1em
+}
+
+#input1, #input2 {
+  height: 10em;
+  width: 100%;
+  max-width: 100%
+}
+
+.error {
+  background: #faa
+}
+
+.added {
+  background: #afa;
+}
+
+.deleted {
+  background: #faa;
+}
+
+.syntax {
+  border: 1px solid #ddd;
+  display: inline-block;
+  margin: 1px;
+  vertical-align: top;
+}
+.Statement, .Property, .ObjectExpression {
+  display: block;
+  margin-left: 1em;
+}
+
+.BlockStatement, .FunctionExpression {
+  display: block;
+  margin-left: 1em;
+}
+
+.syntax.mapped {
+  background: white;
+}
+
+.syntax.hover {
+  background: #aaf;
+}

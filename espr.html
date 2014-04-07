@@ -3,72 +3,7 @@
 <meta charset=utf-8>
 <title>Esprima Diff</title>
 
-<style>
-  body {
-    font-family: sans-serif;
-    font-size: 9pt;
-  }
-  #editor, #raw, #output {
-    display: flex;
-    width: 100%;
-  }
-
-  #editor > div, #raw > div, #output > div {
-    flex: 1 1 auto;
-    width: 50%;
-    margin: 1em
-  }
-
-  #input1, #input2 {
-    height: 10em;
-    width: 100%;
-    max-width: 100%
-  }
-
-  .error {
-    background: #faa
-  }
-
-  .d0 { background: #faa }
-  .d1 { background: #fcc }
-  .d2 { background: #ffa }
-  .d3 { background: #afa }
-  .d4 { background: #aaf }
-
-  .added {
-    background: #afa;
-  }
-
-  .deleted {
-    background: #faa;
-  }
-
-  .syntax {
-    border: 1px solid #ddd;
-    display: inline-block;
-    margin: 1px;
-    vertical-align: top;
-  }
-  .Statement, .Property, .ObjectExpression {
-    display: block;
-    margin-left: 1em;
-  }
-
-  .BlockStatement, .FunctionExpression {
-    display: block;
-    margin-left: 1em;
-  }
-
-  .syntax.mapped {
-    background: white;
-  }
-
-  .syntax.hover {
-    background: #aaf;
-  }
-
-
-</style>
+<link rel=stylesheet href=style.css>
 
 <div id=editor>
   <div>
@@ -84,7 +19,7 @@
 <div><button id=calc>Calculate Difference</button>
   <label><input type=checkbox id=textmode>Text Mode</label></div>
 
-<div id=output class=Pastel1>
+<div id=output>
   <div><div id=output1></div></div>
   <div><div id=output2></div></div>
 </div>
@@ -93,4 +28,5 @@
 <script src=d3.v3.min.js></script>
 <script src=esprima.js></script>
 <script src=escodegen.browser.js></script>
+<script src=tdiff.js></script>
 <script src=espr.js></script>

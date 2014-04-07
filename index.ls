@@ -1,12 +1,17 @@
+{left, right, pwd} = new URI window.location .query true
+
+left = pwd + left unless left.0 is \/
+right = pwd + right unless right.0 is \/
+
+err, {response: left} <-! d3.xhr "/file" + left
+throw err if err
+err, {response: right} <-! d3.xhr "/file" + right
+throw err if err
+
 # DOM binding
 
-input1 = $ \input1
-error1 = $ \error1
 output1 = $ \output1
-input2 = $ \input2
-error2 = $ \error2
 output2 = $ \output2
-textmode = $ \textmode
 
 # to work around mouseout not firing when hovering
 # children, keep track of actual hovered element so
@@ -14,17 +19,11 @@ textmode = $ \textmode
 hovered = []
 calc-diff = !->
   try
-    ast1 = esprima.parse input1.value
-    ast2 = esprima.parse input2.value
+    ast1 = esprima.parse left
+    ast2 = esprima.parse right
   catch
-    if textmode.checked
-      try
-        ast1 = text-mode-parse input1.value
-        ast2 = text-mode-parse input2.value
-      catch
-        return
-    else
-      return
+    ast1 = text-mode-parse left
+    ast2 = text-mode-parse right
 
   console.time 'ast1'
   f1 = new Tree ast1
@@ -91,19 +90,11 @@ calc-diff = !->
     else
       node.class-list.add \added
 
-parse = (input, error, output) -> !->
+parse = (input, output) ->
   try
-    ast = esprima.parse input.value, {+range}
+    ast = esprima.parse input, {+range}
   catch
-    if textmode.checked
-      try
-        ast = text-mode-parse input.value, {+range}
-      catch
-        return
-    else
-      error.text-content = e
-      input.class-list.add \error
-      return
+    ast = text-mode-parse input, {+range}
 
   postorder ast
 
@@ -118,16 +109,6 @@ parse = (input, error, output) -> !->
 
   output.append-child gen-html normalized-code, normalized-ast
 
-  input.class-list.remove \error
-  error.text-content = ''
-
-parse1 = parse input1, error1, output1
-parse2 = parse input2, error2, output2
-
-$ \input1 .add-event-listener \input parse1
-$ \input2 .add-event-listener \input parse2
-
-parse1!
-parse2!
-
-$ \calc .add-event-listener \click calc-diff
+parse left, $ \output1
+parse right, $ \output2
+calc-diff!
