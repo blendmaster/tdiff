@@ -163,6 +163,8 @@ class EditDistance
 
     fd = alloc fd-size
     bt = alloc fd-size
+    for i til bs
+      bt[i] = I
 
     renames = alloc renames-size
     for aa, i in a.nodes
@@ -214,6 +216,9 @@ class EditDistance
 
     console.time-end \main
 
+    #console.log tbl td, as, bs
+    #console.log tbl bt, as, bs
+
     # console.log 'td after'
     # console.log tbl td, as, bs
     # console.log 'fd after'
@@ -223,12 +228,14 @@ class EditDistance
     @amap = {}
     @bmap = {}
     @trace = []
+    @tmap = [["#{td[i * bs + j]}" for j til bs] for i til as]
     i = a.size
     j = b.size
     k = a.size * b.size
     while i >= 0 and j >= 0 and k > 0 # row/col 0 is dummy data
       --k
       @trace.push [i, j]
+      @tmap[i][j] = "(#{td[i * bs + j]})"
       switch bt[i * bs + j]
       case R
         if i > 0 and j > 0
@@ -249,6 +256,8 @@ class EditDistance
         --i
       default
         throw [i, j]
+    #console.log table(@tmap)
+    #console.log @trace
 
 export COST =
   insertion: 1
@@ -342,6 +351,25 @@ output1 = $ \output1
 input2 = $ \input2
 error2 = $ \error2
 output2 = $ \output2
+textmode = $ \textmode
+
+# as a hack, if a file doesn't parse
+# as javascript, then pretend it's a list of
+# javascript strings, per line, which is the
+# degenerate case of tree diff that reduces
+# to a classical string diff.
+text-mode-parse = (text ? '') ->
+  fake-js =
+    "[
+    #{text.split /\n/
+      .map ->
+        "'#{it.split /\s/
+          .map (.replace /'/g "\\'")
+          .join "','"}'"
+      .join '];['
+    }]"
+
+  esprima.parse fake-js
 
 # to work around mouseout not firing when hovering
 # children, keep track of actual hovered element so
@@ -352,7 +380,14 @@ calc-diff = !->
     ast1 = esprima.parse input1.value
     ast2 = esprima.parse input2.value
   catch
-    return
+    if textmode.checked
+      try
+        ast1 = text-mode-parse input1.value
+        ast2 = text-mode-parse input2.value
+      catch
+        return
+    else
+      return
 
   console.time 'ast1'
   f1 = new Tree ast1
@@ -365,7 +400,6 @@ calc-diff = !->
   console.time-end 'dist'
 
   console.log d
-
 
   for node in $$ '#output1 .syntax'
     postorder = node.get-attribute \data-postorder
@@ -426,9 +460,15 @@ parse = (input, error, output) -> !->
   try
     ast = esprima.parse input.value, {+range}
   catch
-    error.text-content = e
-    input.class-list.add \error
-    return
+    if textmode.checked
+      try
+        ast = text-mode-parse input.value, {+range}
+      catch
+        return
+    else
+      error.text-content = e
+      input.class-list.add \error
+      return
 
   postorder ast
 
