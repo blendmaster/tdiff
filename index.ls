@@ -95,6 +95,7 @@ calc-diff = !->
 
           window.scroll-by 0, scroll
         , false
+
     else
       node.class-list.add \deleted
   for node in $$ '#output2 .syntax'

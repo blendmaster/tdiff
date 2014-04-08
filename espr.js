@@ -78,6 +78,34 @@ calcDiff = function(){
         $q("#output1 [data-postorder=\"" + that[1] + "\"]").classList.add('hover');
       }
     }, false);
+    node.addEventListener('click', function(it){
+      var other, oTop, nTop, o1Top, o2Top, diff, scroll, up;
+      if (it.target !== node) {
+        return;
+      }
+      other = $q("#output2 [data-postorder=\"" + mapped + "\"]");
+      oTop = other.getBoundingClientRect().top;
+      nTop = node.getBoundingClientRect().top;
+      o1Top = parseInt(getComputedStyle(output1).getPropertyValue('margin-top').slice(0, -2));
+      o2Top = parseInt(getComputedStyle(output2).getPropertyValue('margin-top').slice(0, -2));
+      diff = Math.ceil(nTop - oTop);
+      if (diff > 0) {
+        o2Top += diff;
+        scroll = 0;
+      } else {
+        o1Top -= diff;
+        scroll = -diff;
+      }
+      if (o1Top && o2Top > 0) {
+        up = o1Top < o2Top ? o1Top : o2Top;
+        scroll -= up;
+        o1Top -= up;
+        o2Top -= up;
+      }
+      output1.style.marginTop = o1Top + "px";
+      output2.style.marginTop = o2Top + "px";
+      window.scrollBy(0, scroll);
+    }, false);
   }
   function fn1$(mapped, postorder, node){
     node.classList.add('mapped');
@@ -102,6 +130,34 @@ calcDiff = function(){
         $q("#output1 [data-postorder=\"" + that[0] + "\"]").classList.add('hover');
         $q("#output2 [data-postorder=\"" + that[1] + "\"]").classList.add('hover');
       }
+    }, false);
+    node.addEventListener('click', function(it){
+      var other, oTop, nTop, o1Top, o2Top, diff, scroll, up;
+      if (it.target !== node) {
+        return;
+      }
+      other = $q("#output1 [data-postorder=\"" + mapped + "\"]");
+      oTop = other.getBoundingClientRect().top;
+      nTop = node.getBoundingClientRect().top;
+      o1Top = parseInt(getComputedStyle(output1).getPropertyValue('margin-top').slice(0, -2));
+      o2Top = parseInt(getComputedStyle(output2).getPropertyValue('margin-top').slice(0, -2));
+      diff = Math.ceil(nTop - oTop);
+      if (diff > 0) {
+        o1Top += diff;
+        scroll = 0;
+      } else {
+        o2Top -= diff;
+        scroll = -diff;
+      }
+      if (o1Top && o2Top > 0) {
+        up = o1Top < o2Top ? o1Top : o2Top;
+        scroll -= up;
+        o1Top -= up;
+        o2Top -= up;
+      }
+      output1.style.marginTop = o1Top + "px";
+      output2.style.marginTop = o2Top + "px";
+      window.scrollBy(0, scroll);
     }, false);
   }
 };
