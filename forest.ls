@@ -48,6 +48,18 @@ class Tree
 
     @size = n
 
+    # label depths
+    q = [[root]]
+    depth = 0
+    while q.length > 0
+      next = []
+      level = q.shift!
+      for node in level
+        next.push ...node.children.slice!
+        node.depth = depth
+      q.push next unless next.length is 0
+      depth++
+
 # TODO more efficient way for tracking the mapping
 min-mapping = (...choices) ->
   min = choices.0.1
@@ -242,15 +254,6 @@ parse-and-draw = (input, error, svg) ->
     error.text-content = e
     void
 
-COST =
-  insertion: 2
-  deletion: 2
-  renaming: (a, b) ->
-    if a.label is b.label
-      0
-    else
-      3
-
 diff = !->
   a = parse-and-draw $(\input1), $(\error1), d3.select \#tree1
   b = parse-and-draw $(\input2), $(\error2), d3.select \#tree2
@@ -261,10 +264,21 @@ diff = !->
   return unless a? and b?
 
   renaming-flat = parseFloat $(\renaming).value
+  postorder-weight = parseFloat $(\postorder-weight).value
+  depth-weight = parseFloat $(\depth-weight).value
   cost =
     insertion: parseFloat $(\insertion).value
     deletion: parseFloat $(\deletion).value
-    renaming: (a, b) -> if a.label is b.label then 0 else renaming-flat
+    renaming: (aa, bb) ->
+      msize = a.size >? b.size
+      postorder = postorder-weight * Math.max do
+        (a.size - aa.postorder) / msize * renaming-flat
+        (b.size - bb.postorder) / msize * renaming-flat
+      depth-diff = depth-weight * Math.abs aa.depth - bb.depth
+      if aa.label is bb.label
+        postorder + depth-diff
+      else
+        renaming-flat
 
   d = new EditDistance a, b, cost
   window.d = d
@@ -297,7 +311,7 @@ diff = !->
         ..enter!append \td
         ..classed \trace false
         ..attr \id (, j, i) -> "td#i#j"
-        ..text d3.format '0.'
+        ..text -> it # d3.format '0.'
 
   for [i, j] in d.trace
     $ "td#i#j" .class-list.add \trace
@@ -320,7 +334,7 @@ diff = !->
   d3.select \#tree2 .select-all \.node
     ..classed \insert -> not d.bmap[it.postorder]?
 
-for el in <[ input1 input2 insertion deletion renaming ]>
+for el in <[ input1 input2 insertion deletion renaming postorder-weight depth-weight ]>
   $ el .add-event-listener \input diff
 
 diff!
