@@ -36,7 +36,7 @@ children =
   SwitchCase:            -> [it.test] ++ it.consequent
   ThisExpression:        -> []
   ThrowStatement:        -> [it.argument]
-  TryStatement:          -> [it.block, it.handler, it.finalizer]
+  TryStatement:          -> [it.block, ...it.handlers, it.finalizer]
   UnaryExpression:       -> [it.argument]
   UpdateExpression:      -> [it.argument]
   VariableDeclaration:   -> it.declarations
