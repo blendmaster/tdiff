@@ -56,7 +56,7 @@ to start the server.
 
 Then running
 
-  ./tdiff.sh <left> <right>
+    ./tdiff.sh <left> <right>
 
 will open up new tdiff tab in your web browser (firefox, by default), with
 the two requested files.
