@@ -17,9 +17,16 @@ calculations in for subtree in a table.
 
 ## Screenshots
 
+[jQuery commit 3dccf64][try]:
+
 ![try](screenshots/try.png)
 
+[jQuery commit 155db][jq]:
+
 ![jq](screenshots/jq2.png)
+
+[try]: https://github.com/jquery/jquery/commit/3dccf62c81b5fbecc3a0431a8927ed1d30806fc6
+[jq]: https://github.com/jquery/jquery/commit/155dbad029e001f4752a4aedc901cf950ebfe64d
 
 ## Installation / Running
 
