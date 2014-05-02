@@ -82,11 +82,12 @@ class EditDistance
 
     @backtrace[0][0] = \r
 
-    @fd = for kr1 in a.key-roots
+    @fd = {}
+    for kr1 in a.key-roots
       for kr2 in b.key-roots
         # temporary array (lmd[kr1]-1 .. kr1, lmd[kr2]-1 .. kr2)
         # where lmd = leftmost-decendent
-        fd = [[] for i to a.size]
+        fd = [[\- for j to b.size] for i to a.size]
 
         # initialize "origin" and edges
         # add 1 to all postorders to prevent use of index -1
@@ -100,25 +101,27 @@ class EditDistance
 
         # add 1 to all postorders to prevent use of index -1
         for i from (kr1.leftmost.postorder + 1) to (kr1.postorder + 1)
+          i1 = a.nodes[i-1]
           for j from (kr2.leftmost.postorder + 1) to (kr2.postorder + 1)
-            if  kr1.leftmost.leftmost is kr1.leftmost \
-            and kr2.leftmost.leftmost is kr2.leftmost
+            j1 = b.nodes[j-1]
+            if  i1.leftmost is kr1.leftmost \
+            and j1.leftmost is kr2.leftmost
               # i.e. both are trees
               [@backtrace[i][j], fd[i][j]] = min-mapping do
+                [\r fd[i-1][j-1] + renaming a.nodes[i-1], b.nodes[j-1] ]
                 [\d fd[i-1][j  ] + deletion]
                 [\i fd[i  ][j-1] + insertion]
-                [\r fd[i-1][j-1] + renaming a.nodes[i-1], b.nodes[j-1] ]
 
               @td[i][j] = fd[i][j]
             else
               fd[i][j] = Math.min do
+                fd[a.nodes[i-1].leftmost.postorder]\
+                  [b.nodes[j-1].leftmost.postorder] + @td[i][j]
                 fd[i-1][j  ] + deletion
                 fd[i  ][j-1] + insertion
-                fd[a.nodes[i-1].leftmost.postorder]\
-                  [b.nodes[j-1].leftmost.postorder] + td[i][j]
 
         # emit fd for algorithm tracing
-        fd
+        @fd["#{kr1.postorder}-#{kr2.postorder}"] = fd
 
     @distance = @td[a.size][b.size]
     @mapping = []
@@ -295,23 +298,33 @@ diff = !->
       ..select \.label .text (.label)
       ..select \.postorder .text (.postorder)
       ..select \.forest .each mini-forest b
-    ..select 'tbody' .select-all \tr .data d.td
-      ..exit!remove!
-      ..enter!append \tr
-        ..append \th
-          ..append \span .attr \class \label
-          ..append \sub .attr \class \postorder
-          ..append \span .attr \class \forest
-      ..select \th
-        ..select \.label .text (, i) -> cols[i]label
-        ..select \.postorder .text (, i) -> cols[i]postorder
-        ..select \.forest .each (, i) -> mini-forest.call this, a, cols[i]
-      ..select-all \td .data (-> it)
+    tbody = ..select 'tbody'
+      ..select-all \tr .data d.td
         ..exit!remove!
-        ..enter!append \td
-        ..classed \trace false
-        ..attr \id (, j, i) -> "td#i#j"
-        ..text -> it # d3.format '0.'
+        ..enter!append \tr
+          ..append \th
+            ..append \span .attr \class \label
+            ..append \sub .attr \class \postorder
+            ..append \span .attr \class \forest
+        ..select \th
+          ..select \.label .text (, i) -> cols[i]label
+          ..select \.postorder .text (, i) -> cols[i]postorder
+          ..select \.forest .each (, i) -> mini-forest.call this, a, cols[i]
+        tds = ..select-all \td .data (-> it)
+          ..exit!remove!
+          ..enter!append \td
+          ..classed \trace false
+          ..classed \subtreed (, j, i) ->
+            d.fd["#{i-1}-#{j-1}"]?
+          ..attr \id (, j, i) -> "td#i#j"
+          ..text -> it # d3.format '0.'
+          ..on \mouseenter (, j, i) !->
+            if d.fd["#{i-1}-#{j-1}"]?
+              # rebind trs to fd
+              tds.text (, y, x) -> d.fd["#{i-1}-#{j-1}"][x][y]
+          ..on \mouseleave (, j, i) !->
+            # reset table
+            tds.text -> it
 
   for [i, j] in d.trace
     $ "td#i#j" .class-list.add \trace

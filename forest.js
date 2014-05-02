@@ -87,7 +87,7 @@ EditDistance = (function(){
   EditDistance.displayName = 'EditDistance';
   var prototype = EditDistance.prototype, constructor = EditDistance;
   function EditDistance(a, b, cost){
-    var deletion, insertion, renaming, res$, i$, to$, i, lresult$, j$, to1$, j, lresult1$, ref$, len$, kr1, lresult2$, ref1$, len1$, kr2, fd, res1$, k$, l$, ref2$;
+    var deletion, insertion, renaming, res$, i$, to$, i, lresult$, j$, to1$, j, lresult1$, ref$, len$, kr1, ref1$, len1$, kr2, fd, k$, lresult2$, l$, i1, j1, ref2$;
     deletion = cost.deletion, insertion = cost.insertion, renaming = cost.renaming;
     res$ = [];
     for (i$ = 0, to$ = a.size; i$ <= to$; ++i$) {
@@ -117,18 +117,22 @@ EditDistance = (function(){
       this.backtrace[i][0] = 'd';
     }
     this.backtrace[0][0] = 'r';
-    res$ = [];
+    this.fd = {};
     for (i$ = 0, len$ = (ref$ = a.keyRoots).length; i$ < len$; ++i$) {
       kr1 = ref$[i$];
-      lresult2$ = [];
       for (j$ = 0, len1$ = (ref1$ = b.keyRoots).length; j$ < len1$; ++j$) {
         kr2 = ref1$[j$];
-        res1$ = [];
+        res$ = [];
         for (k$ = 0, to$ = a.size; k$ <= to$; ++k$) {
           i = k$;
-          res1$.push([]);
+          lresult2$ = [];
+          for (l$ = 0, to1$ = b.size; l$ <= to1$; ++l$) {
+            j = l$;
+            lresult2$.push('-');
+          }
+          res$.push(lresult2$);
         }
-        fd = res1$;
+        fd = res$;
         fd[kr1.leftmost.postorder][kr2.leftmost.postorder] = 0;
         for (k$ = kr1.leftmost.postorder + 1, to$ = kr1.postorder + 1; k$ <= to$; ++k$) {
           i = k$;
@@ -140,21 +144,21 @@ EditDistance = (function(){
         }
         for (k$ = kr1.leftmost.postorder + 1, to$ = kr1.postorder + 1; k$ <= to$; ++k$) {
           i = k$;
+          i1 = a.nodes[i - 1];
           for (l$ = kr2.leftmost.postorder + 1, to1$ = kr2.postorder + 1; l$ <= to1$; ++l$) {
             j = l$;
-            if (kr1.leftmost.leftmost === kr1.leftmost && kr2.leftmost.leftmost === kr2.leftmost) {
-              ref2$ = minMapping(['d', fd[i - 1][j] + deletion], ['i', fd[i][j - 1] + insertion], ['r', fd[i - 1][j - 1] + renaming(a.nodes[i - 1], b.nodes[j - 1])]), this.backtrace[i][j] = ref2$[0], fd[i][j] = ref2$[1];
+            j1 = b.nodes[j - 1];
+            if (i1.leftmost === kr1.leftmost && j1.leftmost === kr2.leftmost) {
+              ref2$ = minMapping(['r', fd[i - 1][j - 1] + renaming(a.nodes[i - 1], b.nodes[j - 1])], ['d', fd[i - 1][j] + deletion], ['i', fd[i][j - 1] + insertion]), this.backtrace[i][j] = ref2$[0], fd[i][j] = ref2$[1];
               this.td[i][j] = fd[i][j];
             } else {
-              fd[i][j] = Math.min(fd[i - 1][j] + deletion, fd[i][j - 1] + insertion, fd[a.nodes[i - 1].leftmost.postorder][b.nodes[j - 1].leftmost.postorder] + td[i][j]);
+              fd[i][j] = Math.min(fd[a.nodes[i - 1].leftmost.postorder][b.nodes[j - 1].leftmost.postorder] + this.td[i][j], fd[i - 1][j] + deletion, fd[i][j - 1] + insertion);
             }
           }
         }
-        lresult2$.push(fd);
+        this.fd[kr1.postorder + "-" + kr2.postorder] = fd;
       }
-      res$.push(lresult2$);
     }
-    this.fd = res$;
     this.distance = this.td[a.size][b.size];
     this.mapping = [];
     this.amap = {};
@@ -342,7 +346,7 @@ parseAndDraw = function(input, error, svg){
   }
 };
 diff = function(){
-  var a, b, renamingFlat, postorderWeight, depthWeight, cost, d, cols, x$, y$, z$, z1$, z2$, z3$, z4$, z5$, i$, ref$, len$, ref1$, i, j, diag, z6$, z7$, z8$, z9$;
+  var a, b, renamingFlat, postorderWeight, depthWeight, cost, d, cols, x$, y$, z$, z1$, tbody, z2$, z3$, z4$, z5$, z6$, tds, i$, ref$, len$, ref1$, i, j, diag, z7$, z8$, z9$, z10$;
   a = parseAndDraw($('input1'), $('error1'), d3.select('#tree1'));
   b = parseAndDraw($('input2'), $('error2'), d3.select('#tree2'));
   window.a = a;
@@ -385,34 +389,50 @@ diff = function(){
     return it.postorder;
   });
   y$.select('.forest').each(miniForest(b));
-  z1$ = x$.select('tbody').selectAll('tr').data(d.td);
-  z1$.exit().remove();
-  z2$ = z1$.enter().append('tr');
-  z3$ = z2$.append('th');
-  z3$.append('span').attr('class', 'label');
-  z3$.append('sub').attr('class', 'postorder');
-  z3$.append('span').attr('class', 'forest');
-  z4$ = z1$.select('th');
-  z4$.select('.label').text(function(arg$, i){
+  z1$ = tbody = x$.select('tbody');
+  z2$ = z1$.selectAll('tr').data(d.td);
+  z2$.exit().remove();
+  z3$ = z2$.enter().append('tr');
+  z4$ = z3$.append('th');
+  z4$.append('span').attr('class', 'label');
+  z4$.append('sub').attr('class', 'postorder');
+  z4$.append('span').attr('class', 'forest');
+  z5$ = z2$.select('th');
+  z5$.select('.label').text(function(arg$, i){
     return cols[i].label;
   });
-  z4$.select('.postorder').text(function(arg$, i){
+  z5$.select('.postorder').text(function(arg$, i){
     return cols[i].postorder;
   });
-  z4$.select('.forest').each(function(arg$, i){
+  z5$.select('.forest').each(function(arg$, i){
     return miniForest.call(this, a, cols[i]);
   });
-  z5$ = z1$.selectAll('td').data(function(it){
+  z6$ = tds = z2$.selectAll('td').data(function(it){
     return it;
   });
-  z5$.exit().remove();
-  z5$.enter().append('td');
-  z5$.classed('trace', false);
-  z5$.attr('id', function(arg$, j, i){
+  z6$.exit().remove();
+  z6$.enter().append('td');
+  z6$.classed('trace', false);
+  z6$.classed('subtreed', function(arg$, j, i){
+    return d.fd[(i - 1) + "-" + (j - 1)] != null;
+  });
+  z6$.attr('id', function(arg$, j, i){
     return "td" + i + j;
   });
-  z5$.text(function(it){
+  z6$.text(function(it){
     return it;
+  });
+  z6$.on('mouseenter', function(arg$, j, i){
+    if (d.fd[(i - 1) + "-" + (j - 1)] != null) {
+      tds.text(function(arg$, y, x){
+        return d.fd[(i - 1) + "-" + (j - 1)][x][y];
+      });
+    }
+  });
+  z6$.on('mouseleave', function(arg$, j, i){
+    tds.text(function(it){
+      return it;
+    });
   });
   for (i$ = 0, len$ = (ref$ = d.trace).length; i$ < len$; ++i$) {
     ref1$ = ref$[i$], i = ref1$[0], j = ref1$[1];
@@ -426,22 +446,22 @@ diff = function(){
     ty = it[1].y + 30;
     return "M " + sx + " " + sy + " A 500 500 0 0 0 " + tx + " " + ty;
   };
-  z6$ = d3.select('#mappings');
-  z7$ = z6$.selectAll('.mapping').data(d.mapping.filter(function(it){
+  z7$ = d3.select('#mappings');
+  z8$ = z7$.selectAll('.mapping').data(d.mapping.filter(function(it){
     return it[0] != null && it[1] != null;
   }));
-  z7$.exit().remove();
-  z7$.enter().append('path');
-  z7$.attr('class', function(it){
+  z8$.exit().remove();
+  z8$.enter().append('path');
+  z8$.attr('class', function(it){
     return "mapping a" + it[0].postorder + " b" + it[1].postorder;
   });
-  z7$.attr('d', diag);
-  z8$ = d3.select('#tree1').selectAll('.node');
-  z8$.classed('delete', function(it){
+  z8$.attr('d', diag);
+  z9$ = d3.select('#tree1').selectAll('.node');
+  z9$.classed('delete', function(it){
     return d.amap[it.postorder] == null;
   });
-  z9$ = d3.select('#tree2').selectAll('.node');
-  z9$.classed('insert', function(it){
+  z10$ = d3.select('#tree2').selectAll('.node');
+  z10$.classed('insert', function(it){
     return d.bmap[it.postorder] == null;
   });
 };

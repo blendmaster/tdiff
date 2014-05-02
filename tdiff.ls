@@ -275,6 +275,12 @@ class EditDistance
     #console.log table(@tmap)
     #console.log @trace
 
+POSTORDER_AFFECT = 0
+if $(\postorder-affect)?
+  POSTORDER_AFFECT = if that.checked then 1 else 0
+  that.add-event-listener \click !->
+    POSTORDER_AFFECT := if that.checked then 1 else 0
+
 BASE = 200
 BASE_RENAME = BASE * 10
 export COST =
@@ -289,7 +295,7 @@ export COST =
       (lgraph.size - left.postorder) / msize * BASE
       (rgraph.size - right.postorder) / msize * BASE
 
-    exact-rename = depth-diff + postorder-weight
+    exact-rename = depth-diff + POSTORDER_AFFECT * postorder-weight
 
     if left.type is right.type
       # TODO string distance
