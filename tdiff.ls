@@ -36,7 +36,7 @@ children =
   SwitchCase:            -> [it.test] ++ it.consequent
   ThisExpression:        -> []
   ThrowStatement:        -> [it.argument]
-  TryStatement:          -> [it.block, it.handler, it.finalizer]
+  TryStatement:          -> [it.block, ...it.handlers, it.finalizer]
   UnaryExpression:       -> [it.argument]
   UpdateExpression:      -> [it.argument]
   VariableDeclaration:   -> it.declarations
@@ -100,6 +100,18 @@ class Tree
             node
 
     @size = n
+
+    # label depths
+    q = [[root]]
+    depth = 0
+    while q.length > 0
+      next = []
+      level = q.shift!
+      for node in level
+        next.push ...children-of(node)
+        node.depth = depth
+      q.push next unless next.length is 0
+      depth++
 
 const
   D = 0
@@ -173,7 +185,7 @@ class EditDistance
     renames = alloc renames-size
     for aa, i in a.nodes
       for bb, j in b.nodes
-        renames[i * bsize + j] = renaming aa, bb
+        renames[i * bsize + j] = renaming a, b, aa, bb
 
     # fill node structs
     astruct = alloc a-struct-size
@@ -263,26 +275,38 @@ class EditDistance
     #console.log table(@tmap)
     #console.log @trace
 
+BASE = 200
+BASE_RENAME = BASE * 10
 export COST =
-  insertion: 1
-  deletion: 1
-  renaming: (left, right) ->
+  insertion: BASE
+  deletion: BASE
+  renaming: (lgraph, rgraph, left, right) ->
+    depth-diff = Math.abs left.depth - right.depth
+    # make earlier (in a postorder sense) exact renames more
+    # expensive than later
+    msize = Math.max lgraph.size, rgraph.size
+    postorder-weight = Math.max do
+      (lgraph.size - left.postorder) / msize * BASE
+      (rgraph.size - right.postorder) / msize * BASE
+
+    exact-rename = depth-diff + postorder-weight
+
     if left.type is right.type
       # TODO string distance
       if left.type is \Literal
         if left.raw is right.raw
-          0
+          exact-rename
         else
-          10
+          BASE_RENAME
       else if left.type is \Identifier
         if left.name is right.name
-          0
+          exact-rename
         else
-          10
+          BASE_RENAME
       else
-        0
+        exact-rename
     else
-      10
+      BASE_RENAME
 
 L = document~create-element
 

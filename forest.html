@@ -70,7 +70,7 @@
 
   #dtable {
     border-spacing: 0;
-    border-collapse:collapse; 
+    border-collapse:collapse;
   }
   #dtable td, #dtable th {
     padding: 0.25em;
@@ -105,15 +105,23 @@
   <div id=costs>
     <label>
       Deletion:
-      <input type=range min=0 max=10 step=1 value=1 id=deletion>
+      <input type=range min=0 max=100 step=1 value=10 id=deletion>
     </label>
     <label>
       Insertion:
-      <input type=range min=0 max=10 step=1 value=1 id=insertion>
+      <input type=range min=0 max=100 step=1 value=10 id=insertion>
     </label>
     <label>
       Renaming:
-      <input type=range min=0 max=10 step=1 value=1 id=renaming>
+      <input type=range min=0 max=1000 step=1 value=100 id=renaming>
+    </label>
+    <label>
+      Favor later:
+      <input type=range min=0 max=1 step=0.1 value=0 id=postorder-weight>
+    </label>
+    <label>
+      Weight depth:
+      <input type=range min=0 max=1 step=0.1 value=0 id=depth-weight>
     </label>
   </div>
 </div>
